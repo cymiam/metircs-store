@@ -59,7 +59,7 @@ func TestMetricHandler_HandleGet(t *testing.T) {
 				contentType: "text/plain; charset=utf-8",
 			},
 			url: "/value/counter/testCounter",
-			get: "1",
+			get: "[1]",
 		},
 		{
 			name: "Test Get unknow counter",
