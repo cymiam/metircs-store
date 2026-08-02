@@ -18,14 +18,15 @@ func (service *MetricService) UpdateCounter(name string) {
 		service.store.SetCounter(name, 1)
 		return
 	}
-	service.store.SetCounter(name, value+1)
+	last := value[len(value)-1]
+	service.store.SetCounter(name, last+1)
 }
 
 func (service *MetricService) UpdateGauge(name string, value float64) {
 	service.store.SetGauge(name, value)
 }
 
-func (service *MetricService) GetCounter(name string) (int64, bool) {
+func (service *MetricService) GetCounter(name string) ([]int64, bool) {
 	return service.store.GetCounter(name)
 }
 
@@ -33,7 +34,7 @@ func (service *MetricService) GetGauge(name string) (float64, bool) {
 	return service.store.GetGauge(name)
 }
 
-func (service *MetricService) GetCounters() map[string]int64 {
+func (service *MetricService) GetCounters() map[string][]int64 {
 	return service.store.GetCounters()
 }
 
