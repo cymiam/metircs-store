@@ -36,7 +36,8 @@ func main() {
 func sendMetric(client *http.Client, metricType, metricName, metricValue string) {
 	url := fmt.Sprintf("http://localhost:8080/update/%s/%s/%s", metricType, metricName, metricValue)
 
-	_, err := client.Post(url, "Content-Type: text/plain", nil)
+	resp, err := client.Post(url, "Content-Type: text/plain", nil)
+	defer resp.Body.Close()
 	if err != nil {
 		fmt.Println(err)
 		return

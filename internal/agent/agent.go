@@ -7,7 +7,7 @@ import (
 )
 
 type Agent struct {
-	PollCount int
+	PollCount int64
 }
 
 func NewAgent() *Agent {
@@ -20,8 +20,7 @@ func (a *Agent) PollRuntimeMetrics() []models.Metric[float64] {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	metrics := make([]models.Metric[float64], 64)
-	metrics = append(metrics, models.NewMetric("Alloc", float64(m.Alloc)))
+	metrics := []models.Metric[float64]{models.NewMetric("Alloc", float64(m.Alloc))}
 	metrics = append(metrics, models.NewMetric("BuckHashSys", float64(m.BuckHashSys)))
 	metrics = append(metrics, models.NewMetric("Frees", float64(m.Frees)))
 	metrics = append(metrics, models.NewMetric("GCCPUFraction", m.GCCPUFraction))
