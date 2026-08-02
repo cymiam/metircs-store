@@ -22,10 +22,10 @@ func main() {
 
 		if time.Since(lastReport) >= time.Duration(config.AgentConfig.ReportInterval) {
 			for _, metric := range metrics {
-				sendMetric(&client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value))
+				sendMetric(&client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value), config.AgentConfig.Addr)
 			}
-			sendMetric(&client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount))
-			sendMetric(&client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()))
+			sendMetric(&client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount), config.AgentConfig.Addr)
+			sendMetric(&client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()), config.AgentConfig.Addr)
 			lastReport = time.Now()
 		}
 		time.Sleep(time.Duration(config.AgentConfig.PollInterval) * time.Second)
@@ -33,8 +33,8 @@ func main() {
 
 }
 
-func sendMetric(client *http.Client, metricType, metricName, metricValue string) {
-	url := fmt.Sprintf("http://localhost:8080/update/%s/%s/%s", metricType, metricName, metricValue)
+func sendMetric(client *http.Client, metricType, metricName, metricValue, host string) {
+	url := fmt.Sprintf("http://%s/update/%s/%s/%s", host, metricType, metricName, metricValue)
 
 	resp, err := client.Post(url, "Content-Type: text/plain", nil)
 	defer resp.Body.Close()
