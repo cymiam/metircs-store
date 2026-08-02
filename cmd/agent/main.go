@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cymiam/metircs-store/internal/agent"
+	"github.com/cymiam/metircs-store/internal/config"
 )
 
 func main() {
@@ -14,21 +15,20 @@ func main() {
 		Timeout: time.Second * 1, // интервал ожидания: 1 секунда
 	}
 	agent := agent.NewAgent()
-
-	pollCounter := 0
+	config.ParseAgentFlags()
+	lastReport := time.Now()
 	for {
 		metrics := agent.PollRuntimeMetrics()
-		pollCounter++
 
-		if pollCounter == 5 {
+		if time.Since(lastReport) >= time.Duration(config.AgentConfig.ReportInterval) {
 			for _, metric := range metrics {
 				sendMetric(&client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value))
 			}
 			sendMetric(&client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount))
 			sendMetric(&client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()))
-			pollCounter = 0
+			lastReport = time.Now()
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(time.Duration(config.AgentConfig.PollInterval) * time.Second)
 	}
 
 }
