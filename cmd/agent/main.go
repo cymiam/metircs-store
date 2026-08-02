@@ -37,10 +37,10 @@ func sendMetric(client *http.Client, metricType, metricName, metricValue, host s
 	url := fmt.Sprintf("http://%s/update/%s/%s/%s", host, metricType, metricName, metricValue)
 
 	resp, err := client.Post(url, "Content-Type: text/plain", nil)
-	defer resp.Body.Close()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer resp.Body.Close()
 	fmt.Printf("Отправил метрику %s, со значением %s\n", metricName, metricValue)
 }
