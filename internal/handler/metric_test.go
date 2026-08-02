@@ -31,6 +31,11 @@ func TestMetricHandler_HandleGet(t *testing.T) {
 	defer ts.Close()
 
 	testRequest(t, ts, "POST", "/update/counter/testCounter/1")
+	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
+	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
+	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
+	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
+	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
 	testRequest(t, ts, "POST", "/update/gauge/testGauge/3.14")
 
 	type want struct {
@@ -59,7 +64,16 @@ func TestMetricHandler_HandleGet(t *testing.T) {
 				contentType: "text/plain; charset=utf-8",
 			},
 			url: "/value/counter/testCounter",
-			get: "[1]",
+			get: "1",
+		},
+		{
+			name: "Test Get Counter",
+			want: want{
+				statusCode:  http.StatusOK,
+				contentType: "text/plain; charset=utf-8",
+			},
+			url: "/value/counter/testCounter2",
+			get: "10",
 		},
 		{
 			name: "Test Get unknow counter",

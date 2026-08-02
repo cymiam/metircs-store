@@ -12,14 +12,14 @@ func NewMetricService() *MetricService {
 	}
 }
 
-func (service *MetricService) UpdateCounter(name string) {
+func (service *MetricService) UpdateCounter(name string, newValue int64) {
 	value, ok := service.store.GetCounter(name)
 	if !ok {
-		service.store.SetCounter(name, 1)
+		service.store.SetCounter(name, newValue)
 		return
 	}
 	last := value[len(value)-1]
-	service.store.SetCounter(name, last+1)
+	service.store.SetCounter(name, last+newValue)
 }
 
 func (service *MetricService) UpdateGauge(name string, value float64) {

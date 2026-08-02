@@ -30,7 +30,7 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 
 	switch metricType {
 	case "counter":
-		handler.metricService.UpdateCounter(metricName)
+		handler.metricService.UpdateCounter(metricName, int64(metricValue))
 		fmt.Printf("Create metric: %s, %s, %f\n", metricType, metricName, metricValue)
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
@@ -53,8 +53,9 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		last := value[len(value)-1]
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%d", value)))
+		w.Write([]byte(fmt.Sprintf("%d", last)))
 	case "gauge":
 		value, ok := handler.metricService.GetGauge(metricName)
 		if !ok {
