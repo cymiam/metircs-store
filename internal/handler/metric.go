@@ -22,18 +22,24 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 	metricType := r.PathValue("metric_type")
 	metricName := r.PathValue("metric_name")
 	metricValue, err := strconv.ParseFloat(r.PathValue("metric_value"), 64)
-	fmt.Printf("Got request, %s, %s, %f\n", metricType, metricName, metricValue)
+	fmt.Printf("Got request: %s, %s, %f\n", metricType, metricName, metricValue)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
+	if metricName == "" {
+		http.Error(w, "Метрика без имени", http.StatusNotFound)
+	}
+
 	switch metricType {
 	case "counter":
 		handler.metricService.UpdateCounter(metricName)
+		w.Header().Add("Content-type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
 		handler.metricService.UpdateGauge(metricName, metricValue)
+		w.Header().Add("Content-type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 	default:
 		http.Error(w, "Неизвестный тип метрики", http.StatusBadRequest)
