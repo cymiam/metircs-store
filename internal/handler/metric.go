@@ -62,7 +62,7 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%f", value)))
+		w.Write([]byte(fmt.Sprintf("%v", value)))
 	default:
 		http.Error(w, "Неизвестный тип метрики", http.StatusBadRequest)
 	}
@@ -76,7 +76,7 @@ func (handler *MetricHandler) HanldeGetMetrics(w http.ResponseWriter, r *http.Re
 	}
 	body += "======Gauges======\n"
 	for k, v := range handler.metricService.GetGauges() {
-		body += fmt.Sprintf("%s\t\t%f\n", k, v)
+		body += fmt.Sprintf("%s\t\t%v\n", k, v)
 	}
 
 	w.Write([]byte(body))

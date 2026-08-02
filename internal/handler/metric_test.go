@@ -50,7 +50,7 @@ func TestMetricHandler_HandleGet(t *testing.T) {
 				contentType: "text/plain; charset=utf-8",
 			},
 			url: "/value/gauge/testGauge",
-			get: "3.140000",
+			get: "3.14",
 		},
 		{
 			name: "Test Positive Get Counter",
