@@ -20,10 +20,10 @@ func NewMetricHandler() *MetricHandler {
 }
 
 func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-type", "text/plain; charset=utf-8")
 	metricType := chi.URLParam(r, "metric_type")
 	metricName := chi.URLParam(r, "metric_name")
 	metricValue, err := strconv.ParseFloat(chi.URLParam(r, "metric_value"), 64)
-	w.Header().Add("Content-type", "text/plain; charset=utf-8")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -43,9 +43,9 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 }
 
 func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-type", "text/plain; charset=utf-8")
 	metricType := chi.URLParam(r, "metric_type")
 	metricName := chi.URLParam(r, "metric_name")
-	w.Header().Add("Content-type", "text/plain; charset=utf-8")
 	switch metricType {
 	case "counter":
 		value, ok := handler.metricService.GetCounter(metricName)
@@ -69,7 +69,8 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (handler *MetricHandler) HanldeGetMetrics(w http.ResponseWriter, r *http.Request) {
+func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-type", "text/plain; charset=utf-8")
 	body := "======Metrics======\n"
 	body += ("======Counters======\n")
 	for k, v := range handler.metricService.GetCounters() {
@@ -95,7 +96,7 @@ func MetricRouter() chi.Router {
 		r.Get("/{metric_type}/{metric_name}", metricHandler.HandleGetMetric)
 	})
 	r.Route("/", func(r chi.Router) {
-		r.Get("/", metricHandler.HanldeGetMetrics)
+		r.Get("/", metricHandler.HandleGetMetrics)
 	})
 	return r
 }

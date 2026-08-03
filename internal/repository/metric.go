@@ -40,9 +40,23 @@ func (m *MemStorage) GetGauge(name string) (float64, bool) {
 }
 
 func (m *MemStorage) GetGauges() map[string]float64 {
-	return m.gauges
+	cpy := make(map[string]float64, len(m.gauges))
+
+	for key, value := range m.gauges {
+		cpy[key] = value
+	}
+
+	return cpy
 }
 
 func (m *MemStorage) GetCounters() map[string][]int64 {
-	return m.counters
+	cpy := make(map[string][]int64, len(m.counters))
+
+	for key, value := range m.counters {
+		tmp := make([]int64, len(value))
+		copy(tmp, value)
+		cpy[key] = tmp
+	}
+
+	return cpy
 }

@@ -11,9 +11,6 @@ import (
 )
 
 func main() {
-	client := http.Client{
-		Timeout: time.Second * 1, // интервал ожидания: 1 секунда
-	}
 	agent := agent.NewAgent()
 	config.ParseAgentFlags()
 	lastReport := time.Now()
@@ -22,10 +19,10 @@ func main() {
 
 		if time.Since(lastReport) >= time.Duration(config.AgentConfig.ReportInterval) {
 			for _, metric := range metrics {
-				sendMetric(&client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value), config.AgentConfig.Addr)
+				sendMetric(&agent.Client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value), config.AgentConfig.Addr)
 			}
-			sendMetric(&client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount), config.AgentConfig.Addr)
-			sendMetric(&client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()), config.AgentConfig.Addr)
+			sendMetric(&agent.Client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount), config.AgentConfig.Addr)
+			sendMetric(&agent.Client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()), config.AgentConfig.Addr)
 			lastReport = time.Now()
 		}
 		time.Sleep(time.Duration(config.AgentConfig.PollInterval) * time.Second)

@@ -1,18 +1,24 @@
 package agent
 
 import (
+	"net/http"
 	"runtime"
+	"time"
 
 	models "github.com/cymiam/metircs-store/internal/model"
 )
 
 type Agent struct {
 	PollCount int64
+	Client    http.Client
 }
 
 func NewAgent() *Agent {
 	return &Agent{
 		PollCount: 0,
+		Client: http.Client{
+			Timeout: time.Second * 1, // интервал ожидания: 1 секунда
+		},
 	}
 }
 
