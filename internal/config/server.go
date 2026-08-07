@@ -1,14 +1,26 @@
 package config
 
-import "flag"
+import (
+	"flag"
+	"os"
+)
 
-type serverConfig struct {
+type ServerConfig struct {
 	Addr string
 }
 
-var ServerConfig serverConfig
-
-func ParseServerFlags() {
-	flag.StringVar(&ServerConfig.Addr, "a", ":8080", "address and port to run server")
+func parseServerFlags(serverConfig *ServerConfig) {
+	flag.StringVar(&serverConfig.Addr, "a", ":8080", "address and port to run server")
 	flag.Parse()
+}
+
+func ParseServerConfig() ServerConfig {
+	var serverConfig ServerConfig
+	parseServerFlags(&serverConfig)
+
+	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
+		serverConfig.Addr = envRunAddr
+	}
+
+	return serverConfig
 }

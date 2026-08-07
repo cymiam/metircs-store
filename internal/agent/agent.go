@@ -5,12 +5,14 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/cymiam/metircs-store/internal/config"
 	models "github.com/cymiam/metircs-store/internal/model"
 )
 
 type Agent struct {
 	PollCount int64
 	Client    http.Client
+	Config    config.AgentConfig
 }
 
 func NewAgent() *Agent {
@@ -19,6 +21,7 @@ func NewAgent() *Agent {
 		Client: http.Client{
 			Timeout: time.Second * 1, // интервал ожидания: 1 секунда
 		},
+		Config: config.ParseAgentConfig(),
 	}
 }
 

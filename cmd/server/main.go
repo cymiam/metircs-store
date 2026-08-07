@@ -10,8 +10,10 @@ import (
 )
 
 func main() {
-	config.ParseServerFlags()
+
+	config := config.ParseServerConfig()
+
 	r := handler.MetricRouter()
-	fmt.Println("Running server on", config.ServerConfig.Addr)
-	log.Fatal(http.ListenAndServe(config.ServerConfig.Addr, r))
+	fmt.Println("Running server on", config.Addr)
+	log.Fatal(http.ListenAndServe(config.Addr, r))
 }

@@ -7,25 +7,23 @@ import (
 	"time"
 
 	"github.com/cymiam/metircs-store/internal/agent"
-	"github.com/cymiam/metircs-store/internal/config"
 )
 
 func main() {
 	agent := agent.NewAgent()
-	config.ParseAgentFlags()
 	lastReport := time.Now()
 	for {
 		metrics := agent.PollRuntimeMetrics()
 
-		if time.Since(lastReport) >= time.Duration(config.AgentConfig.ReportInterval) {
+		if time.Since(lastReport) >= time.Duration(agent.Config.ReportInterval) {
 			for _, metric := range metrics {
-				sendMetric(&agent.Client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value), config.AgentConfig.Addr)
+				sendMetric(&agent.Client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value), agent.Config.Addr)
 			}
-			sendMetric(&agent.Client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount), config.AgentConfig.Addr)
-			sendMetric(&agent.Client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()), config.AgentConfig.Addr)
+			sendMetric(&agent.Client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount), agent.Config.Addr)
+			sendMetric(&agent.Client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()), agent.Config.Addr)
 			lastReport = time.Now()
 		}
-		time.Sleep(time.Duration(config.AgentConfig.PollInterval) * time.Second)
+		time.Sleep(time.Duration(agent.Config.PollInterval) * time.Second)
 	}
 
 }
