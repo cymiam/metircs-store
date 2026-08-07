@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/cymiam/metircs-store/internal/config"
+	config "github.com/cymiam/metircs-store/internal/config/server"
 	"github.com/cymiam/metircs-store/internal/handler"
 )
 

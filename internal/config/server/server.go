@@ -10,7 +10,7 @@ type ServerConfig struct {
 }
 
 func parseServerFlags(serverConfig *ServerConfig) {
-	flag.StringVar(&serverConfig.Addr, "a", ":8080", "address and port to run server")
+	flag.StringVar(&serverConfig.Addr, "a", "localhost:8080", "address and port to run server")
 	flag.Parse()
 }
 

@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cymiam/metircs-store/internal/config"
+	config "github.com/cymiam/metircs-store/internal/config/agent"
 	models "github.com/cymiam/metircs-store/internal/model"
 )
 
