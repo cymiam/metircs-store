@@ -15,13 +15,21 @@ type Agent struct {
 	Config    config.AgentConfig
 }
 
-func NewAgent() *Agent {
+func NewAgent(configs ...config.AgentConfig) *Agent {
+	var cfg config.AgentConfig
+
+	if len(configs) > 0 {
+		cfg = configs[0]
+	} else {
+		cfg = config.ParseAgentConfig()
+	}
+
 	return &Agent{
 		PollCount: 0,
 		Client: http.Client{
 			Timeout: time.Second * 1, // интервал ожидания: 1 секунда
 		},
-		Config: config.ParseAgentConfig(),
+		Config: cfg,
 	}
 }
 
