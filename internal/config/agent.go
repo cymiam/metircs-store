@@ -12,7 +12,7 @@ type AgentConfig struct {
 }
 
 func parseAgentFlags(agentConfig *AgentConfig) {
-	flag.StringVar(&agentConfig.Addr, "a", ":8080", "address and port of server")
+	flag.StringVar(&agentConfig.Addr, "a", "localhost:8080", "address and port of server")
 	flag.Int64Var(&agentConfig.ReportInterval, "r", 10, "report interval")
 	flag.Int64Var(&agentConfig.PollInterval, "p", 2, "poll interval")
 	flag.Parse()
