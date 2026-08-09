@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/cymiam/metircs-store/internal/logger"
 	"github.com/cymiam/metircs-store/internal/service"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type MetricHandler struct {
@@ -31,11 +33,17 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 	switch metricType {
 	case "counter":
 		handler.metricService.UpdateCounter(metricName, int64(metricValue))
-		fmt.Printf("Create metric: %s, %s, %f\n", metricType, metricName, metricValue)
+		logger.Log.Info("Update metric",
+			zap.String("MetricName", metricName),
+			zap.String("MetricType", metricType),
+			zap.Int("MetricValue", int(metricValue)))
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
 		handler.metricService.UpdateGauge(metricName, metricValue)
-		fmt.Printf("Create metric: %s, %s, %f\n", metricType, metricName, metricValue)
+		logger.Log.Info("Update metric",
+			zap.String("MetricName", metricName),
+			zap.String("MetricType", metricType),
+			zap.Float64("MetricValue", metricValue))
 		w.WriteHeader(http.StatusOK)
 	default:
 		http.Error(w, "Неизвестный тип метрики", http.StatusBadRequest)
@@ -89,14 +97,14 @@ func MetricRouter() chi.Router {
 	metricHandler := NewMetricHandler()
 	r.Route("/update", func(r chi.Router) {
 		r.Route("/", func(r chi.Router) {
-			r.Post("/{metric_type}/{metric_name}/{metric_value}", metricHandler.HandleUpdate)
+			r.Post("/{metric_type}/{metric_name}/{metric_value}", logger.RequestLogger(metricHandler.HandleUpdate))
 		})
 	})
 	r.Route("/value", func(r chi.Router) {
-		r.Get("/{metric_type}/{metric_name}", metricHandler.HandleGetMetric)
+		r.Get("/{metric_type}/{metric_name}", logger.RequestLogger(metricHandler.HandleGetMetric))
 	})
 	r.Route("/", func(r chi.Router) {
-		r.Get("/", metricHandler.HandleGetMetrics)
+		r.Get("/", logger.RequestLogger(metricHandler.HandleGetMetrics))
 	})
 	return r
 }

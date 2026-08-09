@@ -7,9 +7,15 @@ import (
 	"time"
 
 	"github.com/cymiam/metircs-store/internal/agent"
+	"github.com/cymiam/metircs-store/internal/logger"
+	"go.uber.org/zap"
 )
 
 func main() {
+
+	if err := logger.Initialize("Info"); err != nil {
+		panic(err)
+	}
 	agent := agent.NewAgent()
 	lastReport := time.Now()
 	for {
@@ -33,9 +39,11 @@ func sendMetric(client *http.Client, metricType, metricName, metricValue, host s
 
 	resp, err := client.Post(url, "Content-Type: text/plain", nil)
 	if err != nil {
-		fmt.Println(err)
+		logger.Log.Error(err.Error())
 		return
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Отправил метрику %s, со значением %s\n", metricName, metricValue)
+	logger.Log.Info("Отправил метрику",
+		zap.String("Metric Name", metricName),
+		zap.String("Metric Value", metricValue))
 }
