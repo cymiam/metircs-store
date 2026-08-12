@@ -34,6 +34,7 @@ func createTestDataJson(t *testing.T, server *httptest.Server, path string,
 	body, err := easyjson.Marshal(data)
 	require.NoError(t, err, "error Marshall request body")
 	req.Body = body
+	req.Header.Set("Content-Type", "application/json")
 
 	_, err = req.Send()
 	assert.NoError(t, err, "error making HTTP request")

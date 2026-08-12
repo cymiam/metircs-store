@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"math/rand/v2"
-	"net/http"
 	"time"
 
 	"github.com/cymiam/metircs-store/internal/agent"
 	"github.com/cymiam/metircs-store/internal/logger"
+	models "github.com/cymiam/metircs-store/internal/model"
+	"github.com/go-resty/resty/v2"
+	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
 
@@ -22,11 +24,12 @@ func main() {
 		metrics := agent.PollRuntimeMetrics()
 
 		if time.Since(lastReport) >= time.Duration(agent.Config.ReportInterval) {
-			for _, metric := range metrics {
-				sendMetric(&agent.Client, "gauge", metric.Name, fmt.Sprintf("%f", metric.Value), agent.Config.Addr)
+			for _, m := range metrics {
+				sendMetric(agent.Client, agent.Config.Addr, m)
 			}
-			sendMetric(&agent.Client, "counter", "PollCount", fmt.Sprintf("%d", agent.PollCount), agent.Config.Addr)
-			sendMetric(&agent.Client, "gauge", "RandomValue", fmt.Sprintf("%f", rand.Float64()), agent.Config.Addr)
+			randValue := rand.Float64()
+			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "PollCount", MType: "counter", Delta: &agent.PollCount})
+			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &randValue})
 			lastReport = time.Now()
 		}
 		time.Sleep(time.Duration(agent.Config.PollInterval) * time.Second)
@@ -34,16 +37,29 @@ func main() {
 
 }
 
-func sendMetric(client *http.Client, metricType, metricName, metricValue, host string) {
-	url := fmt.Sprintf("http://%s/update/%s/%s/%s", host, metricType, metricName, metricValue)
+func sendMetric(client resty.Client, addr string, m models.Metrics) {
 
-	resp, err := client.Post(url, "Content-Type: text/plain", nil)
+	metric, err := easyjson.Marshal(m)
 	if err != nil {
-		logger.Log.Error(err.Error())
+		logger.Log.Error("Cannot marshal metric",
+			zap.String("Metric Name", m.ID),
+		)
 		return
 	}
-	defer resp.Body.Close()
-	logger.Log.Info("Отправил метрику",
-		zap.String("Metric Name", metricName),
-		zap.String("Metric Value", metricValue))
+
+	req := client.R()
+
+	req.Method = "POST"
+	req.URL = fmt.Sprintf("http://%s/update", addr)
+	req.Body = metric
+	req.Header.Set("Content-Type", "application/json")
+	_, err = req.Send()
+
+	if err != nil {
+		logger.Log.Error("Error sending metric", zap.String("Metric Name", m.ID), zap.Error(err))
+		return
+	}
+	logger.Log.Info("Send metric",
+		zap.String("Metric Name", m.ID),
+		zap.String("Metric Type", m.MType))
 }

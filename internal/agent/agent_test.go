@@ -79,7 +79,7 @@ func TestAgent_PollRuntimeMetricsPresent(t *testing.T) {
 	got := make([]string, 0)
 
 	for _, metric := range metrics {
-		got = append(got, metric.Name)
+		got = append(got, metric.ID)
 	}
 
 	for _, tt := range tests {
