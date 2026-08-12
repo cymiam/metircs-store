@@ -20,7 +20,7 @@ func TestAgent_PollRuntimeMetrics(t *testing.T) {
 	}{
 		{
 			name: "Test metric count",
-			want: 26,
+			want: 27,
 		},
 	}
 	for _, tt := range tests {
@@ -61,6 +61,7 @@ func TestAgent_PollRuntimeMetricsPresent(t *testing.T) {
 				"Lookups",
 				"MCacheInuse",
 				"MCacheSys",
+				"MSpanInuse",
 				"MSpanSys",
 				"Mallocs",
 				"NextGC",

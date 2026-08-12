@@ -50,6 +50,7 @@ func (a *Agent) PollRuntimeMetrics() []models.Metrics {
 	metrics = append(metrics, models.Metrics{ID: "Lookups", Value: helper(float64(m.Lookups)), MType: "gauge"})
 	metrics = append(metrics, models.Metrics{ID: "MCacheInuse", Value: helper(float64(m.MCacheInuse)), MType: "gauge"})
 	metrics = append(metrics, models.Metrics{ID: "MCacheSys", Value: helper(float64(m.MCacheSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metrics{ID: "MSpanInuse", Value: helper(float64(m.MSpanInuse)), MType: "gauge"})
 	metrics = append(metrics, models.Metrics{ID: "MSpanSys", Value: helper(float64(m.MSpanSys)), MType: "gauge"})
 	metrics = append(metrics, models.Metrics{ID: "Mallocs", Value: helper(float64(m.Mallocs)), MType: "gauge"})
 	metrics = append(metrics, models.Metrics{ID: "NextGC", Value: helper(float64(m.NextGC)), MType: "gauge"})
