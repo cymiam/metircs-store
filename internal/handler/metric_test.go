@@ -7,148 +7,155 @@ import (
 	"testing"
 
 	"github.com/cymiam/metircs-store/internal/handler"
+	models "github.com/cymiam/metircs-store/internal/model"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method,
-	path string) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
-	require.NoError(t, err)
+func createTestData(t *testing.T, server *httptest.Server,
+	path string) {
 
-	resp, err := ts.Client().Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
+	req := resty.New().R()
+	req.Method = "POST"
+	req.URL = server.URL + path
 
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-
-	return resp, string(respBody)
+	_, err := req.Send()
+	assert.NoError(t, err, "error making HTTP request")
 }
 
-func TestMetricHandler_HandleGet(t *testing.T) {
-	ts := httptest.NewServer(handler.MetricRouter())
-	defer ts.Close()
+func TestMetricHandler(t *testing.T) {
+	server := httptest.NewServer(handler.MetricRouter())
+	defer server.Close()
 
-	testRequest(t, ts, "POST", "/update/counter/testCounter/1")
-	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
-	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
-	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
-	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
-	testRequest(t, ts, "POST", "/update/counter/testCounter2/2")
-	testRequest(t, ts, "POST", "/update/gauge/testGauge/3.14")
+	createTestData(t, server, "/update/counter/testCounter/1")
+	createTestData(t, server, "/update/counter/testCounter2/2")
+	createTestData(t, server, "/update/counter/testCounter2/2")
+	createTestData(t, server, "/update/counter/testCounter2/2")
+	createTestData(t, server, "/update/counter/testCounter2/2")
+	createTestData(t, server, "/update/counter/testCounter2/2")
+	createTestData(t, server, "/update/gauge/testGauge/3.14")
 
 	type want struct {
 		statusCode  int
 		contentType string
+		body        io.ReadCloser
+		value       string
 	}
+
 	tests := []struct {
-		name string
-		url  string
-		want want
-		get  string
+		name   string
+		url    string
+		body   models.Metrics
+		method string
+		want   want
 	}{
 		{
-			name: "Test Positive Get Gauge",
+			name:   "GET Gauge",
+			url:    "/value/gauge/testGauge",
+			method: "GET",
 			want: want{
 				statusCode:  http.StatusOK,
 				contentType: "text/plain; charset=utf-8",
+				value:       "3.14",
 			},
-			url: "/value/gauge/testGauge",
-			get: "3.14",
 		},
 		{
-			name: "Test Positive Get Counter",
+			name:   "GET Single Counter",
+			url:    "/value/counter/testCounter",
+			method: "GET",
 			want: want{
 				statusCode:  http.StatusOK,
 				contentType: "text/plain; charset=utf-8",
+				value:       "1",
 			},
-			url: "/value/counter/testCounter",
-			get: "1",
 		},
 		{
-			name: "Test Get Counter",
+			name:   "GET Multiple Counters",
+			url:    "/value/counter/testCounter2",
+			method: "GET",
 			want: want{
 				statusCode:  http.StatusOK,
 				contentType: "text/plain; charset=utf-8",
+				value:       "10",
 			},
-			url: "/value/counter/testCounter2",
-			get: "10",
 		},
 		{
-			name: "Test Get unknow counter",
+			name:   "GET Unknown Counter",
+			url:    "/value/counter/unknownCounter",
+			method: "GET",
 			want: want{
 				statusCode:  http.StatusNotFound,
 				contentType: "text/plain; charset=utf-8",
+				value:       "",
 			},
-			url: "/value/counter/unknownCounter",
-			get: "",
 		},
 		{
-			name: "Test Get unknow gauge",
+			name:   "GET Unknow gauge",
+			url:    "/value/gauge/unknownGauge",
+			method: "GET",
 			want: want{
 				statusCode:  http.StatusNotFound,
 				contentType: "text/plain; charset=utf-8",
+				value:       "",
 			},
-			url: "/value/gauge/unknownGauge",
-			get: "",
 		},
-	}
-	for _, v := range tests {
-		resp, get := testRequest(t, ts, "GET", v.url)
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
-		assert.Equal(t, v.get, get)
-	}
-}
-
-func TestMetricHandler_HandleUpdate(t *testing.T) {
-	ts := httptest.NewServer(handler.MetricRouter())
-	defer ts.Close()
-
-	type want struct {
-		statusCode  int
-		contentType string
-	}
-	tests := []struct {
-		name string
-		url  string
-		want want
-	}{
 		{
-			name: "Test Positive Gauge",
+			name:   "POST Gauge",
+			url:    "/update/gauge/test/3.0",
+			method: "POST",
 			want: want{
 				statusCode:  http.StatusOK,
 				contentType: "text/plain; charset=utf-8",
 			},
-			url: "/update/gauge/test/3.0",
 		},
 		{
-			name: "Test Positive Counter",
+			name:   "POST Counter",
+			url:    "/update/counter/test2/5",
+			method: "POST",
 			want: want{
 				statusCode:  http.StatusOK,
 				contentType: "text/plain; charset=utf-8",
 			},
-			url: "/update/counter/test2/5",
 		},
 		{
-			name: "Test Unknown metric type",
+			name:   "POST Unknown metric type",
+			url:    "/update/timeseries/requests/5",
+			method: "POST",
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				contentType: "text/plain; charset=utf-8",
+				value:       "Неизвестный тип метрики\n",
 			},
-			url: "/update/timeseries/requests/5",
 		},
 		{
-			name: "Test no metric name",
+			name:   "POST No metric name",
+			url:    "/update/counter/5",
+			method: "POST",
 			want: want{
 				statusCode:  http.StatusNotFound,
 				contentType: "text/plain; charset=utf-8",
+				value:       "404 page not found\n",
 			},
-			url: "/update/counter/5",
 		},
 	}
-	for _, v := range tests {
-		resp, _ := testRequest(t, ts, "POST", v.url)
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+
+	for _, tc := range tests {
+
+		t.Run(tc.name, func(t *testing.T) {
+			req := resty.New().R()
+			req.Method = tc.method
+			req.URL = server.URL + tc.url
+
+			resp, err := req.Send()
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, tc.want.statusCode, resp.StatusCode())
+			assert.Equal(t, tc.want.contentType, resp.Header().Get("Content-Type"))
+
+			if resp.Header().Get("Content-Type") == "text/plain; charset=utf-8" {
+				require.Equal(t, tc.want.value, string(resp.Body()))
+			}
+		})
+
 	}
 }
