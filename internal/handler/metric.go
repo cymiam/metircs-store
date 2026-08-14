@@ -8,7 +8,9 @@ import (
 	"github.com/cymiam/metircs-store/internal/logger"
 	models "github.com/cymiam/metircs-store/internal/model"
 	"github.com/cymiam/metircs-store/internal/service"
+	pkg "github.com/cymiam/metircs-store/pkg/gzip"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
@@ -102,7 +104,12 @@ func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Re
 func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Request) {
 
 	metric := models.Metrics{}
-	easyjson.UnmarshalFromReader(r.Body, &metric)
+	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
+		logger.Log.Error("Error unmarhsalling json", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	metricType := metric.MType
 	metricName := metric.ID
 
@@ -137,7 +144,11 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-type", "application/json; charset=utf-8")
 	metric := models.Metrics{}
-	easyjson.UnmarshalFromReader(r.Body, &metric)
+	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
+		logger.Log.Error("Error unmarhsalling json", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	metricType := metric.MType
 	metricName := metric.ID
@@ -173,17 +184,23 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 
 func MetricRouter() chi.Router {
 	r := chi.NewRouter()
+
+	r.Use(middleware.Compress(5, "application/json", "text/html"))
+	r.Use(middleware.AllowContentEncoding("gzip"))
+	r.Use(pkg.GzipDecompressMidlleware)
+	r.Use(logger.RequestLogger)
+
 	metricHandler := NewMetricHandler()
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/", logger.RequestLogger(metricHandler.HandleUpdateJson))
-		r.Post("/{metric_type}/{metric_name}/{metric_value}", logger.RequestLogger(metricHandler.HandleUpdate))
+		r.Post("/", metricHandler.HandleUpdateJson)
+		r.Post("/{metric_type}/{metric_name}/{metric_value}", metricHandler.HandleUpdate)
 	})
 	r.Route("/value", func(r chi.Router) {
-		r.Post("/", logger.RequestLogger(metricHandler.HandleGetMetricJson))
-		r.Get("/{metric_type}/{metric_name}", logger.RequestLogger(metricHandler.HandleGetMetric))
+		r.Post("/", metricHandler.HandleGetMetricJson)
+		r.Get("/{metric_type}/{metric_name}", metricHandler.HandleGetMetric)
 	})
 	r.Route("/", func(r chi.Router) {
-		r.Get("/", logger.RequestLogger(metricHandler.HandleGetMetrics))
+		r.Get("/", metricHandler.HandleGetMetrics)
 	})
 
 	return r
