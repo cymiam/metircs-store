@@ -87,7 +87,7 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 }
 
 func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-type", "text/plain; charset=utf-8")
+	w.Header().Add("Content-type", "text/html; charset=utf-8")
 	body := "======Metrics======\n"
 	body += ("======Counters======\n")
 	for k, v := range handler.metricService.GetCounters() {
