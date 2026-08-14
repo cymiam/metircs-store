@@ -7,6 +7,9 @@ import (
 
 	"github.com/cymiam/metircs-store/internal/handler"
 	models "github.com/cymiam/metircs-store/internal/model"
+	"github.com/cymiam/metircs-store/internal/repository"
+	"github.com/cymiam/metircs-store/internal/service"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
 	"github.com/stretchr/testify/assert"
@@ -40,8 +43,17 @@ func createTestDataJson(t *testing.T, server *httptest.Server, path string,
 	assert.NoError(t, err, "error making HTTP request")
 }
 
+func createTestServer() chi.Router {
+	repository := repository.NewStore()
+	service := service.NewMetricService(repository)
+	metricHandler := handler.NewMetricHandler(service)
+
+	r := handler.NewMetricRouter(metricHandler)
+	return r
+}
+
 func TestMetricHandler_Update(t *testing.T) {
-	server := httptest.NewServer(handler.MetricRouter())
+	server := httptest.NewServer(createTestServer())
 	defer server.Close()
 
 	type want struct {
@@ -124,7 +136,7 @@ func TestMetricHandler_Update(t *testing.T) {
 }
 
 func TestMetricHandler_UpdateJson(t *testing.T) {
-	server := httptest.NewServer(handler.MetricRouter())
+	server := httptest.NewServer(createTestServer())
 	defer server.Close()
 
 	jsonGaugeValue := 3.1415
@@ -225,7 +237,7 @@ func TestMetricHandler_UpdateJson(t *testing.T) {
 }
 
 func TestMetricHandler_Value(t *testing.T) {
-	server := httptest.NewServer(handler.MetricRouter())
+	server := httptest.NewServer(createTestServer())
 	defer server.Close()
 
 	createTestData(t, server, "/update/counter/testCounter/2")
@@ -314,7 +326,7 @@ func TestMetricHandler_Value(t *testing.T) {
 }
 
 func TestMetricHandler_ValueJson(t *testing.T) {
-	server := httptest.NewServer(handler.MetricRouter())
+	server := httptest.NewServer(createTestServer())
 	defer server.Close()
 
 	jsonGaugeValue := 3.1415

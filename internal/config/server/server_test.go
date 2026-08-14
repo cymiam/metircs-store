@@ -15,7 +15,10 @@ func TestParseServerConfig(t *testing.T) {
 		{
 			name: "Deafult Config",
 			want: config.ServerConfig{
-				Addr: "localhost:8080",
+				Addr:            "localhost:8080",
+				StoreInterval:   300,
+				FileStoragePath: "metrics.json",
+				Restore:         false,
 			},
 		},
 	}

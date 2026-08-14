@@ -19,9 +19,9 @@ type MetricHandler struct {
 	metricService *service.MetricService
 }
 
-func NewMetricHandler() *MetricHandler {
+func NewMetricHandler(metricService *service.MetricService) *MetricHandler {
 	return &MetricHandler{
-		metricService: service.NewMetricService(),
+		metricService: metricService,
 	}
 }
 
@@ -182,7 +182,7 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 	}
 }
 
-func MetricRouter() chi.Router {
+func NewMetricRouter(metricHandler *MetricHandler) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Compress(5, "application/json", "text/html"))
@@ -190,7 +190,6 @@ func MetricRouter() chi.Router {
 	r.Use(pkg.GzipDecompressMidlleware)
 	r.Use(logger.RequestLogger)
 
-	metricHandler := NewMetricHandler()
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", metricHandler.HandleUpdateJson)
 		r.Post("/{metric_type}/{metric_name}/{metric_value}", metricHandler.HandleUpdate)

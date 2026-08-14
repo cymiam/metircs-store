@@ -6,9 +6,9 @@ type MetricService struct {
 	store repository.MetricRepository
 }
 
-func NewMetricService() *MetricService {
+func NewMetricService(store repository.MetricRepository) *MetricService {
 	return &MetricService{
-		store: repository.NewStore(),
+		store: store,
 	}
 }
 
