@@ -25,7 +25,7 @@ func main() {
 	for {
 		metrics := agent.PollRuntimeMetrics()
 
-		if time.Since(lastReport) >= time.Duration(agent.Config.ReportInterval) {
+		if time.Since(lastReport) >= time.Duration(agent.Config.ReportInterval*int64(time.Second)) {
 			for _, m := range metrics {
 				sendMetric(agent.Client, agent.Config.Addr, m)
 			}
