@@ -26,14 +26,14 @@ type MetricSaverParams struct {
 	Store         *repository.MemStorage
 }
 
-func NewMetricSaver(params MetricSaverParams) MetricSaver {
+func NewMetricSaver(params MetricSaverParams) *MetricSaver {
 	file, err := os.OpenFile(params.Path, os.O_CREATE|os.O_RDWR, 0666)
 
 	if err != nil {
 		logger.Log.Fatal("Cannot open file", zap.String("name: ", params.Path))
 	}
 
-	return MetricSaver{
+	return &MetricSaver{
 		file:          file,
 		storeInterval: time.Duration(params.StoreInterval) * time.Second,
 		store:         params.Store,

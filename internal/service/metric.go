@@ -6,12 +6,12 @@ import (
 
 type MetricService struct {
 	store repository.MetricRepository
-	saver MetricSaver
+	saver *MetricSaver
 }
 
 type MetricServiceParams struct {
 	Store repository.MetricRepository
-	Saver MetricSaver
+	Saver *MetricSaver
 }
 
 func NewMetricService(config MetricServiceParams) *MetricService {
@@ -29,12 +29,16 @@ func (service *MetricService) UpdateCounter(name string, newValue int64) {
 	}
 	last := value[len(value)-1]
 	service.store.SetCounter(name, last+newValue)
-	service.saver.OnMetricChanged()
+	if service.saver != nil {
+		service.saver.OnMetricChanged()
+	}
 }
 
 func (service *MetricService) UpdateGauge(name string, value float64) {
 	service.store.SetGauge(name, value)
-	service.saver.OnMetricChanged()
+	if service.saver != nil {
+		service.saver.OnMetricChanged()
+	}
 }
 
 func (service *MetricService) GetCounter(name string) ([]int64, bool) {
