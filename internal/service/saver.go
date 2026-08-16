@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"os"
 	"time"
@@ -94,6 +95,11 @@ func (m *MetricSaver) PopulateStore() error {
 	m.reader.Reset(m.file)
 
 	err := easyjson.UnmarshalFromReader(m.reader, m.store)
+
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
