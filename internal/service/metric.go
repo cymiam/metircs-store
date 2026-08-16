@@ -1,14 +1,23 @@
 package service
 
-import "github.com/cymiam/metircs-store/internal/repository"
+import (
+	"github.com/cymiam/metircs-store/internal/repository"
+)
 
 type MetricService struct {
 	store repository.MetricRepository
+	saver MetricSaver
 }
 
-func NewMetricService(store repository.MetricRepository) *MetricService {
+type MetricServiceParams struct {
+	Store repository.MetricRepository
+	Saver MetricSaver
+}
+
+func NewMetricService(config MetricServiceParams) *MetricService {
 	return &MetricService{
-		store: store,
+		store: config.Store,
+		saver: config.Saver,
 	}
 }
 
@@ -20,10 +29,12 @@ func (service *MetricService) UpdateCounter(name string, newValue int64) {
 	}
 	last := value[len(value)-1]
 	service.store.SetCounter(name, last+newValue)
+	service.saver.OnMetricChanged()
 }
 
 func (service *MetricService) UpdateGauge(name string, value float64) {
 	service.store.SetGauge(name, value)
+	service.saver.OnMetricChanged()
 }
 
 func (service *MetricService) GetCounter(name string) ([]int64, bool) {

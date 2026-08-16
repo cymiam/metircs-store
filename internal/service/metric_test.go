@@ -22,7 +22,7 @@ func TestMetricService_UpdateCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service := NewMetricService(repository.NewStore())
+			service := NewMetricService(MetricServiceParams{Store: repository.NewStore()})
 			service.store.SetCounter("test", 1)
 			service.UpdateCounter(tt.metricName, tt.newValue)
 

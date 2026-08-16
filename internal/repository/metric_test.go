@@ -13,8 +13,8 @@ func TestNewStore(t *testing.T) {
 		{
 			name: "Test New Mem storage",
 			want: &MemStorage{
-				gauges:   make(map[string]float64),
-				counters: make(map[string][]int64),
+				Gauges:   make(map[string]float64),
+				Counters: make(map[string][]int64),
 			},
 		},
 	}
@@ -72,8 +72,8 @@ func TestMemStorage_GetCounter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MemStorage{
-				gauges:   tt.fields.gauges,
-				counters: tt.fields.counters,
+				Gauges:   tt.fields.gauges,
+				Counters: tt.fields.counters,
 			}
 			got, got1 := m.GetCounter(tt.metricName)
 			if !reflect.DeepEqual(got, tt.want) {
@@ -130,8 +130,8 @@ func TestMemStorage_GetGauge(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MemStorage{
-				gauges:   tt.fields.gauges,
-				counters: tt.fields.counters,
+				Gauges:   tt.fields.gauges,
+				Counters: tt.fields.counters,
 			}
 			got, got1 := m.GetGauge(tt.metricName)
 			if got != tt.want {
@@ -174,8 +174,8 @@ func TestMemStorage_GetGauges(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MemStorage{
-				gauges:   tt.fields.gauges,
-				counters: tt.fields.counters,
+				Gauges:   tt.fields.gauges,
+				Counters: tt.fields.counters,
 			}
 			if got := m.GetGauges(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MemStorage.GetGauges() = %v, want %v", got, tt.want)
@@ -215,8 +215,8 @@ func TestMemStorage_GetCounters(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MemStorage{
-				gauges:   tt.fields.gauges,
-				counters: tt.fields.counters,
+				Gauges:   tt.fields.gauges,
+				Counters: tt.fields.counters,
 			}
 			if got := m.GetCounters(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MemStorage.GetCounters() = %v, want %v", got, tt.want)

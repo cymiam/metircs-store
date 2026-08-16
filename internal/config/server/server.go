@@ -18,7 +18,7 @@ type ServerConfig struct {
 func parseServerFlags(serverConfig *ServerConfig) {
 	flag.StringVar(&serverConfig.Addr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&serverConfig.FileStoragePath, "f", "metrics.json", "local metrics storage path")
-	flag.IntVar(&serverConfig.StoreInterval, "i", 300, "Metrics update offset")
+	flag.IntVar(&serverConfig.StoreInterval, "i", 300, "Metrics update offset in seconds")
 	flag.BoolVar(&serverConfig.Restore, "r", false, "Start server with old metrics")
 	flag.Parse()
 }

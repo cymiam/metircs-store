@@ -88,16 +88,25 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 
 func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-type", "text/html; charset=utf-8")
-	body := "======Metrics======\n"
-	body += ("======Counters======\n")
+	body := `
+	<table>
+	<tr>
+		<th>Name</th>
+		<th>Value</th>
+	</tr>`
 	for k, v := range handler.metricService.GetCounters() {
-		body += fmt.Sprintf("%s\t\t%d\n", k, v)
+		body += "<tr>"
+		body += fmt.Sprintf("<td>%s</td>", k)
+		body += fmt.Sprintf("<td>%d</td>", v)
+		body += "</tr>"
 	}
-	body += "======Gauges======\n"
 	for k, v := range handler.metricService.GetGauges() {
-		body += fmt.Sprintf("%s\t\t%v\n", k, v)
+		body += "<tr>"
+		body += fmt.Sprintf("<td>%s</td>", k)
+		body += fmt.Sprintf("<td>%f</td>", v)
+		body += "</tr>"
 	}
-
+	body += "</table>"
 	w.Write([]byte(body))
 }
 
