@@ -14,14 +14,7 @@ type Agent struct {
 	Config    config.AgentConfig
 }
 
-func NewAgent(configs ...config.AgentConfig) *Agent {
-	var cfg config.AgentConfig
-
-	if len(configs) > 0 {
-		cfg = configs[0]
-	} else {
-		cfg = config.ParseAgentConfig()
-	}
+func NewAgent(cfg config.AgentConfig) *Agent {
 
 	return &Agent{
 		PollCount: 0,

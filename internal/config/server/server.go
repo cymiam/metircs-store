@@ -3,15 +3,15 @@ package config
 import (
 	"flag"
 	"fmt"
-	"os"
-	"strconv"
+
+	"github.com/caarlos0/env/v11"
 )
 
 type ServerConfig struct {
-	Addr            string
-	StoreInterval   int
-	FileStoragePath string
-	Restore         bool
+	Addr            string `env:"ADDRESS"`
+	StoreInterval   int    `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 func parseServerFlags(serverConfig *ServerConfig) {
@@ -26,31 +26,8 @@ func ParseServerConfig() (*ServerConfig, error) {
 	var serverConfig ServerConfig
 	parseServerFlags(&serverConfig)
 
-	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		serverConfig.Addr = envRunAddr
-	}
-
-	if envStoreInterval := os.Getenv("STORE_INTERVAL"); envStoreInterval != "" {
-		val, err := strconv.Atoi(envStoreInterval)
-
-		if err != nil {
-			return nil, fmt.Errorf("Cannot convert STORE_INTERVAL to INT %w", err)
-		}
-		serverConfig.StoreInterval = val
-	}
-
-	if envStoragePath := os.Getenv("FILE_STORAGE_PATH"); envStoragePath != "" {
-		serverConfig.FileStoragePath = envStoragePath
-	}
-
-	if envRestore := os.Getenv("RESTORE"); envRestore != "" {
-		val, err := strconv.ParseBool(envRestore)
-
-		if err != nil {
-			return nil, fmt.Errorf("Cannot convert RESTORE to BOOL %w", err)
-		}
-		serverConfig.Restore = val
-
+	if err := env.Parse(&serverConfig); err != nil {
+		return nil, fmt.Errorf("parse server environment: %w", err)
 	}
 
 	return &serverConfig, nil

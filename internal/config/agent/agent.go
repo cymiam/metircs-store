@@ -2,9 +2,9 @@ package config
 
 import (
 	"flag"
-	"log"
+	"fmt"
 
-	"github.com/caarlos0/env"
+	"github.com/caarlos0/env/v11"
 )
 
 type AgentConfig struct {
@@ -20,14 +20,13 @@ func parseAgentFlags(agentConfig *AgentConfig) {
 	flag.Parse()
 }
 
-func ParseAgentConfig() AgentConfig {
+func ParseAgentConfig() (AgentConfig, error) {
 	var agentConfig AgentConfig
 	parseAgentFlags(&agentConfig)
-	err := env.Parse(&agentConfig)
 
-	if err != nil {
-		log.Fatal(err)
+	if err := env.Parse(&agentConfig); err != nil {
+		return AgentConfig{}, fmt.Errorf("parse server environment: %w", err)
 	}
 
-	return agentConfig
+	return agentConfig, nil
 }

@@ -3,7 +3,7 @@ module github.com/cymiam/metrics-store
 go 1.26.4
 
 require (
-	github.com/caarlos0/env v3.5.0+incompatible
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/mailru/easyjson v0.9.2

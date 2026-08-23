@@ -3,6 +3,8 @@ package config
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseAgentConfig(t *testing.T) {
@@ -20,8 +22,11 @@ func TestParseAgentConfig(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+
+		got, err := ParseAgentConfig()
+		require.NoError(t, err)
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ParseAgentConfig(); !reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseAgentConfig() = %v, want %v", got, tt.want)
 			}
 		})

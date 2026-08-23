@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cymiam/metrics-store/internal/agent"
+	config "github.com/cymiam/metrics-store/internal/config/agent"
 	"github.com/cymiam/metrics-store/internal/logger"
 	models "github.com/cymiam/metrics-store/internal/model"
 	compress "github.com/cymiam/metrics-store/pkg/compress"
@@ -23,7 +24,12 @@ func main() {
 		log.Fatal("Cannot start logger", err)
 	}
 
-	agent := agent.NewAgent()
+	agentConfig, err := config.ParseAgentConfig()
+
+	if err != nil {
+		log.Fatal("Cannot parse agent config", err)
+	}
+	agent := agent.NewAgent(agentConfig)
 	lastReport := time.Now()
 	for {
 		metrics := agent.PollRuntimeMetrics()
