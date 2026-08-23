@@ -1,15 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
 	"fmt"
+	"log"
 	"math/rand/v2"
 	"time"
 
-	"github.com/cymiam/metircs-store/internal/agent"
-	"github.com/cymiam/metircs-store/internal/logger"
-	models "github.com/cymiam/metircs-store/internal/model"
+	"github.com/cymiam/metrics-store/internal/agent"
+	"github.com/cymiam/metrics-store/internal/logger"
+	models "github.com/cymiam/metrics-store/internal/model"
+	compress "github.com/cymiam/metrics-store/pkg/compress"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
@@ -17,9 +17,12 @@ import (
 
 func main() {
 
-	if err := logger.Initialize("Info"); err != nil {
-		panic(err)
+	logger, err := logger.NewLogger("info", "agent-logger")
+
+	if err != nil {
+		log.Fatal("Cannot start logger", err)
 	}
+
 	agent := agent.NewAgent()
 	lastReport := time.Now()
 	for {
@@ -27,11 +30,11 @@ func main() {
 
 		if time.Since(lastReport) >= time.Duration(agent.Config.ReportInterval*int64(time.Second)) {
 			for _, m := range metrics {
-				sendMetric(agent.Client, agent.Config.Addr, m)
+				sendMetric(agent.Client, agent.Config.Addr, m, logger)
 			}
 			randValue := rand.Float64()
-			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "PollCount", MType: "counter", Delta: &agent.PollCount})
-			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &randValue})
+			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "PollCount", MType: "counter", Delta: &agent.PollCount}, logger)
+			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &randValue}, logger)
 			lastReport = time.Now()
 		}
 		time.Sleep(time.Duration(agent.Config.PollInterval) * time.Second)
@@ -39,47 +42,38 @@ func main() {
 
 }
 
-func sendMetric(client resty.Client, addr string, m models.Metrics) {
+func sendMetric(client resty.Client, addr string, m models.Metrics, logger *zap.Logger) {
 
 	metric, err := easyjson.Marshal(m)
 	if err != nil {
-		logger.Log.Error("Cannot marshal metric",
+		logger.Error("Cannot marshal metric",
 			zap.String("Metric Name", m.ID),
 		)
 		return
 	}
 
-	var buffer bytes.Buffer
-
-	w := gzip.NewWriter(&buffer)
-
-	_, err = w.Write(metric)
-	if err != nil {
-		logger.Log.Error("Error write metric data to buffer", zap.String("Metric Name", m.ID), zap.Error(err))
-		return
-	}
-
-	err = w.Close()
+	gziped, err := compress.GzipCompress(metric)
 
 	if err != nil {
-		logger.Log.Error("Error compress metric", zap.String("Metric Name", m.ID), zap.Error(err))
+		logger.Error("Error compress metric", zap.String("Metric Name", m.ID), zap.Error(err))
 		return
 	}
 
 	req := client.R()
 	req.Method = "POST"
 	req.URL = fmt.Sprintf("http://%s/update/", addr)
-	req.Body = buffer.Bytes()
+	req.Body = gziped
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
 
-	resp, err1 := req.Send()
-	if err1 != nil {
-		logger.Log.Error("Error sending metric", zap.String("Metric Name", m.ID), zap.Error(err))
+	resp, err := req.Send()
+	if err != nil {
+		logger.Error("Error sending metric", zap.String("Metric Name", m.ID), zap.Error(err))
 		return
 	}
 
-	logger.Log.Info("Send metric",
+	logger.Info("Send metric",
 		zap.String("Metric Name", m.ID),
 		zap.String("Metric Type", m.MType),
 		zap.String("Host", req.URL),

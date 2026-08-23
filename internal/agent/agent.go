@@ -3,8 +3,8 @@ package agent
 import (
 	"runtime"
 
-	config "github.com/cymiam/metircs-store/internal/config/agent"
-	models "github.com/cymiam/metircs-store/internal/model"
+	config "github.com/cymiam/metrics-store/internal/config/agent"
+	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/go-resty/resty/v2"
 )
 

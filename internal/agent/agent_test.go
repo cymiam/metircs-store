@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	config "github.com/cymiam/metircs-store/internal/config/agent"
+	config "github.com/cymiam/metrics-store/internal/config/agent"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,23 +14,7 @@ func TestAgent_PollRuntimeMetrics(t *testing.T) {
 		ReportInterval: 10,
 	})
 	got := a.PollRuntimeMetrics()
-	tests := []struct {
-		name string // description of this test case
-		want int64
-	}{
-		{
-			name: "Test metric count",
-			want: 27,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// TODO: update the condition below to compare got with tt.want.
-			if len(got) != int(tt.want) {
-				t.Errorf("PollRuntimeMetrics() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	assert.Equal(t, 27, len(got))
 }
 
 func TestAgent_PollRuntimeMetricsPresent(t *testing.T) {
@@ -100,22 +84,5 @@ func TestAgent_UpdatePollCount(t *testing.T) {
 		ReportInterval: 10,
 	})
 	a.PollRuntimeMetrics()
-	tests := []struct {
-		name string // description of this test case
-		want int64
-	}{
-		{
-			name: "Test Update Pollcount",
-			want: 1,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := a.PollCount
-			// TODO: update the condition below to compare got with tt.want.
-			if got != tt.want {
-				t.Errorf("PollRuntimeMetrics() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	assert.Equal(t, int64(1), a.PollCount)
 }

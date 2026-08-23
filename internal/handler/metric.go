@@ -5,10 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cymiam/metircs-store/internal/logger"
-	models "github.com/cymiam/metircs-store/internal/model"
-	"github.com/cymiam/metircs-store/internal/service"
-	pkg "github.com/cymiam/metircs-store/pkg/gzip"
+	m "github.com/cymiam/metrics-store/internal/middleware"
+	models "github.com/cymiam/metrics-store/internal/model"
+	"github.com/cymiam/metrics-store/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mailru/easyjson"
@@ -17,11 +16,13 @@ import (
 
 type MetricHandler struct {
 	metricService *service.MetricService
+	logger        *zap.Logger
 }
 
-func NewMetricHandler(metricService *service.MetricService) *MetricHandler {
+func NewMetricHandler(metricService *service.MetricService, logger *zap.Logger) *MetricHandler {
 	return &MetricHandler{
 		metricService: metricService,
+		logger:        logger,
 	}
 }
 
@@ -37,14 +38,14 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 	switch metricType {
 	case "counter":
 		handler.metricService.UpdateCounter(metricName, int64(metricValue))
-		logger.Log.Info("Update metric",
+		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
 			zap.Int("MetricValue", int(metricValue)))
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
 		handler.metricService.UpdateGauge(metricName, metricValue)
-		logger.Log.Info("Update metric",
+		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
 			zap.Float64("MetricValue", metricValue))
@@ -114,7 +115,7 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 
 	metric := models.Metrics{}
 	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
-		logger.Log.Error("Error unmarhsalling json", zap.Error(err))
+		handler.logger.Error("Error unmarhsalling json", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -130,20 +131,20 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 	switch metricType {
 	case "counter":
 		handler.metricService.UpdateCounter(metricName, *metric.Delta)
-		logger.Log.Info("Update metric",
+		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
 			zap.Int("MetricValue", int(*metric.Delta)))
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
 		handler.metricService.UpdateGauge(metricName, *metric.Value)
-		logger.Log.Info("Update metric",
+		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
 			zap.Float64("MetricValue", *metric.Value))
 		w.WriteHeader(http.StatusOK)
 	default:
-		logger.Log.Info("Update metric failed",
+		handler.logger.Info("Update metric failed",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType))
 		http.Error(w, fmt.Sprintf("Неизвестный тип метрики: %s", metricType), http.StatusBadRequest)
@@ -154,7 +155,7 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 	w.Header().Add("Content-type", "application/json; charset=utf-8")
 	metric := models.Metrics{}
 	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
-		logger.Log.Error("Error unmarhsalling json", zap.Error(err))
+		handler.logger.Error("Error unmarhsalling json", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -191,13 +192,13 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 	}
 }
 
-func NewMetricRouter(metricHandler *MetricHandler) chi.Router {
+func NewMetricRouter(metricHandler *MetricHandler, logger *zap.Logger) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Compress(5, "application/json", "text/html"))
 	r.Use(middleware.AllowContentEncoding("gzip"))
-	r.Use(pkg.GzipDecompressMidlleware)
-	r.Use(logger.RequestLogger)
+	r.Use(m.GzipDecompressMidlleware)
+	r.Use(m.RequestLoggerMiddleware(logger))
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", metricHandler.HandleUpdateJson)

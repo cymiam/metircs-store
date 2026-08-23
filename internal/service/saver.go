@@ -7,8 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/cymiam/metircs-store/internal/logger"
-	"github.com/cymiam/metircs-store/internal/repository"
+	"github.com/cymiam/metrics-store/internal/repository"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
@@ -19,19 +18,21 @@ type MetricSaver struct {
 	store         *repository.MemStorage
 	reader        *bufio.Reader
 	writer        *bufio.Writer
+	logger        *zap.Logger
 }
 
 type MetricSaverParams struct {
 	Path          string
 	StoreInterval int
 	Store         *repository.MemStorage
+	Logger        *zap.Logger
 }
 
-func NewMetricSaver(params MetricSaverParams) *MetricSaver {
+func NewMetricSaver(params MetricSaverParams) (*MetricSaver, error) {
 	file, err := os.OpenFile(params.Path, os.O_CREATE|os.O_RDWR, 0666)
 
 	if err != nil {
-		logger.Log.Fatal("Cannot open file", zap.String("name: ", params.Path))
+		return nil, err
 	}
 
 	return &MetricSaver{
@@ -40,7 +41,8 @@ func NewMetricSaver(params MetricSaverParams) *MetricSaver {
 		store:         params.Store,
 		reader:        bufio.NewReader(file),
 		writer:        bufio.NewWriter(file),
-	}
+		logger:        params.Logger,
+	}, nil
 }
 
 func (m *MetricSaver) Update() {
@@ -53,10 +55,11 @@ func (m *MetricSaver) Update() {
 
 	for range ticker.C {
 		if err := m.WriteToFile(); err != nil {
-			logger.Log.Error(
+			m.logger.Error(
 				"Cannot marshal store",
 				zap.Error(err),
 			)
+
 		}
 	}
 }
@@ -80,7 +83,7 @@ func (m *MetricSaver) WriteToFile() error {
 	if err != nil {
 		return err
 	}
-	logger.Log.Info("Written into file", zap.String("file name", m.file.Name()), zap.Int("Bytes", written))
+	m.logger.Info("Written into file", zap.String("file name", m.file.Name()), zap.Int("Bytes", written))
 
 	m.writer.Flush()
 	return nil
@@ -104,7 +107,7 @@ func (m *MetricSaver) PopulateStore() error {
 		return err
 	}
 
-	logger.Log.Info("Read from file", zap.String("file name", m.file.Name()))
+	m.logger.Info("Read from file", zap.String("file name", m.file.Name()))
 	return nil
 }
 
@@ -114,6 +117,6 @@ func (m *MetricSaver) OnMetricChanged() {
 	}
 
 	if err := m.WriteToFile(); err != nil {
-		logger.Log.Error("Cannot write to file", zap.Error(err))
+		m.logger.Error("Cannot write to file", zap.Error(err))
 	}
 }

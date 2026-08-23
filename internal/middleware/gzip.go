@@ -1,9 +1,10 @@
-package pkg
+package middleware
 
 import (
-	"compress/gzip"
 	"net/http"
 	"strings"
+
+	"github.com/cymiam/metrics-store/pkg/compress"
 )
 
 func GzipDecompressMidlleware(next http.Handler) http.Handler {
@@ -13,14 +14,13 @@ func GzipDecompressMidlleware(next http.Handler) http.Handler {
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
 		if sendsGzip {
 
-			gz, err := gzip.NewReader(r.Body)
+			gz, err := compress.GzipDecompress(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-
-			r.Body = gz
 			defer gz.Close()
+			r.Body = gz
 		}
 
 		// передаём управление хендлеру

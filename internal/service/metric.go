@@ -1,23 +1,27 @@
 package service
 
 import (
-	"github.com/cymiam/metircs-store/internal/repository"
+	"github.com/cymiam/metrics-store/internal/repository"
+	"go.uber.org/zap"
 )
 
 type MetricService struct {
-	store repository.MetricRepository
-	saver *MetricSaver
+	store  repository.MetricRepository
+	saver  *MetricSaver
+	logger *zap.Logger
 }
 
 type MetricServiceParams struct {
-	Store repository.MetricRepository
-	Saver *MetricSaver
+	Store  repository.MetricRepository
+	Saver  *MetricSaver
+	Logger *zap.Logger
 }
 
 func NewMetricService(config MetricServiceParams) *MetricService {
 	return &MetricService{
-		store: config.Store,
-		saver: config.Saver,
+		store:  config.Store,
+		saver:  config.Saver,
+		logger: config.Logger,
 	}
 }
 

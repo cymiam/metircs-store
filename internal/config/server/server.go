@@ -2,10 +2,9 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
-
-	"github.com/cymiam/metircs-store/internal/logger"
 )
 
 type ServerConfig struct {
@@ -23,7 +22,7 @@ func parseServerFlags(serverConfig *ServerConfig) {
 	flag.Parse()
 }
 
-func ParseServerConfig() ServerConfig {
+func ParseServerConfig() (*ServerConfig, error) {
 	var serverConfig ServerConfig
 	parseServerFlags(&serverConfig)
 
@@ -35,7 +34,7 @@ func ParseServerConfig() ServerConfig {
 		val, err := strconv.Atoi(envStoreInterval)
 
 		if err != nil {
-			logger.Log.Fatal("Cannot convert STORE_INTERVAL to INT")
+			return nil, fmt.Errorf("Cannot convert STORE_INTERVAL to INT %w", err)
 		}
 		serverConfig.StoreInterval = val
 	}
@@ -48,11 +47,11 @@ func ParseServerConfig() ServerConfig {
 		val, err := strconv.ParseBool(envRestore)
 
 		if err != nil {
-			logger.Log.Fatal("Cannot convert RESTORE to BOOl")
+			return nil, fmt.Errorf("Cannot convert RESTORE to BOOL %w", err)
 		}
 		serverConfig.Restore = val
 
 	}
 
-	return serverConfig
+	return &serverConfig, nil
 }

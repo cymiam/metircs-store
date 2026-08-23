@@ -5,15 +5,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/cymiam/metircs-store/internal/handler"
-	models "github.com/cymiam/metircs-store/internal/model"
-	"github.com/cymiam/metircs-store/internal/repository"
-	"github.com/cymiam/metircs-store/internal/service"
+	"github.com/cymiam/metrics-store/internal/handler"
+	models "github.com/cymiam/metrics-store/internal/model"
+	"github.com/cymiam/metrics-store/internal/repository"
+	"github.com/cymiam/metrics-store/internal/service"
+	"github.com/cymiam/metrics-store/pkg/compress"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func createTestData(t *testing.T, server *httptest.Server,
@@ -46,9 +48,9 @@ func createTestDataJson(t *testing.T, server *httptest.Server, path string,
 func createTestServer() chi.Router {
 	repository := repository.NewStore()
 	service := service.NewMetricService(service.MetricServiceParams{Store: repository})
-	metricHandler := handler.NewMetricHandler(service)
+	metricHandler := handler.NewMetricHandler(service, zap.NewNop())
 
-	r := handler.NewMetricRouter(metricHandler)
+	r := handler.NewMetricRouter(metricHandler, zap.NewNop())
 	return r
 }
 
@@ -450,4 +452,50 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 		})
 
 	}
+}
+
+func TestMetricHandler_GzipJson(t *testing.T) {
+	server := httptest.NewServer(createTestServer())
+	defer server.Close()
+
+	jsonCounterValue := int64(5)
+	data := models.Metrics{
+		ID:    "CounterJson",
+		MType: "counter",
+		Delta: &jsonCounterValue}
+
+	req := resty.New().R()
+	req.Method = "POST"
+	req.URL = server.URL + "/update"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+
+	body, err := easyjson.Marshal(data)
+	require.NoError(t, err, "error Marshall request body")
+
+	gz, err := compress.GzipCompress(body)
+
+	require.NoError(t, err, "error Compress request body")
+
+	req.Body = gz
+	_, err = req.Send()
+
+	data2 := models.Metrics{
+		ID:    "CounterJson",
+		MType: "counter"}
+
+	body2, err := easyjson.Marshal(data2)
+	require.NoError(t, err, "error Marshall request body")
+
+	req = resty.New().R()
+	req.Method = "POST"
+	req.URL = server.URL + "/value"
+	req.Body = body2
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	res2, err := req.Send()
+	require.NoError(t, err, "error Marshall request body")
+
+	require.JSONEq(t, string(body), string(res2.Body()))
+	require.Equal(t, res2.Header().Get("Content-Encoding"), "gzip")
 }

@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/cymiam/metircs-store/internal/repository"
+	"github.com/cymiam/metrics-store/internal/repository"
 	"github.com/stretchr/testify/assert"
 )
 

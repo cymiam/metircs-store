@@ -1,4 +1,4 @@
-module github.com/cymiam/metircs-store
+module github.com/cymiam/metrics-store
 
 go 1.26.4
 
