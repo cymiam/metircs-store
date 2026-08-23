@@ -10,39 +10,39 @@ type MetricRepository interface {
 }
 
 type MemStorage struct {
-	gauges   map[string]float64
-	counters map[string][]int64
+	Gauges   map[string]float64 `json:"gauges"`
+	Counters map[string][]int64 `json:"counters"`
 }
 
 func NewStore() *MemStorage {
 	return &MemStorage{
-		gauges:   make(map[string]float64),
-		counters: make(map[string][]int64),
+		Gauges:   make(map[string]float64),
+		Counters: make(map[string][]int64),
 	}
 }
 
 func (m *MemStorage) SetCounter(name string, value int64) {
-	m.counters[name] = append(m.counters[name], value)
+	m.Counters[name] = append(m.Counters[name], value)
 }
 
 func (m *MemStorage) SetGauge(name string, value float64) {
-	m.gauges[name] = value
+	m.Gauges[name] = value
 }
 
 func (m *MemStorage) GetCounter(name string) ([]int64, bool) {
-	value, ok := m.counters[name]
+	value, ok := m.Counters[name]
 	return value, ok
 }
 
 func (m *MemStorage) GetGauge(name string) (float64, bool) {
-	value, ok := m.gauges[name]
+	value, ok := m.Gauges[name]
 	return value, ok
 }
 
 func (m *MemStorage) GetGauges() map[string]float64 {
-	cpy := make(map[string]float64, len(m.gauges))
+	cpy := make(map[string]float64, len(m.Gauges))
 
-	for key, value := range m.gauges {
+	for key, value := range m.Gauges {
 		cpy[key] = value
 	}
 
@@ -50,9 +50,9 @@ func (m *MemStorage) GetGauges() map[string]float64 {
 }
 
 func (m *MemStorage) GetCounters() map[string][]int64 {
-	cpy := make(map[string][]int64, len(m.counters))
+	cpy := make(map[string][]int64, len(m.Counters))
 
-	for key, value := range m.counters {
+	for key, value := range m.Counters {
 		tmp := make([]int64, len(value))
 		copy(tmp, value)
 		cpy[key] = tmp
