@@ -35,17 +35,11 @@ func main() {
 		StoreInterval: config.StoreInterval,
 		Store:         repository,
 		Logger:        saverLog,
+		Restore:       config.Restore,
 	})
 
 	if err != nil {
 		log.Fatal("Metric Saver error", err)
-	}
-
-	if config.Restore {
-		err := saver.PopulateStore()
-		if err != nil {
-			log.Fatal("Cannot populate store", err)
-		}
 	}
 
 	service := service.NewMetricService(service.MetricServiceParams{Store: repository, Saver: saver, Logger: saverLog})

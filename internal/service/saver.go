@@ -26,6 +26,7 @@ type MetricSaverParams struct {
 	StoreInterval int
 	Store         *repository.MemStorage
 	Logger        *zap.Logger
+	Restore       bool
 }
 
 func NewMetricSaver(params MetricSaverParams) (*MetricSaver, error) {
@@ -35,13 +36,22 @@ func NewMetricSaver(params MetricSaverParams) (*MetricSaver, error) {
 		return nil, err
 	}
 
-	return &MetricSaver{
+	saver := &MetricSaver{
 		file:          file,
 		storeInterval: time.Duration(params.StoreInterval) * time.Second,
 		store:         params.Store,
 		logger:        params.Logger,
 		queue:         make([]models.Metrics, 0),
-	}, nil
+	}
+
+	if params.Restore {
+		if err := saver.PopulateStore(); err != nil {
+			_ = file.Close()
+			return nil, fmt.Errorf("populate store: %w", err)
+		}
+	}
+
+	return saver, nil
 }
 
 func (m *MetricSaver) StartTicker() {
