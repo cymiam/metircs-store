@@ -185,12 +185,6 @@ func (m *MetricSaver) PopulateStore() error {
 	m.store.Gauges = newStore.Gauges
 	m.store.Counters = newStore.Counters
 
-	// // Последующие записи всё равно используют O_APPEND,
-	// // но позицию файла также явно перемещаем в конец.
-	// if _, err := m.file.Seek(0, io.SeekEnd); err != nil {
-	// 	return fmt.Errorf("seek to end of metrics file: %w", err)
-	// }
-
 	m.logger.Info(
 		"Metrics restored from file",
 		zap.String("file", m.file.Name()),
