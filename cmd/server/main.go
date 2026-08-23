@@ -53,7 +53,7 @@ func main() {
 	r := handler.NewMetricRouter(metricHandler, httpLog)
 
 	if config.StoreInterval > 0 {
-		go saver.Update()
+		go saver.StartTicker()
 	}
 
 	baseLog.Info("Running server", zap.String("address", config.Addr))

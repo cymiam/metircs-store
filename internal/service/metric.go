@@ -1,6 +1,7 @@
 package service
 
 import (
+	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/repository"
 	"go.uber.org/zap"
 )
@@ -27,21 +28,31 @@ func NewMetricService(config MetricServiceParams) *MetricService {
 
 func (service *MetricService) UpdateCounter(name string, newValue int64) {
 	value, ok := service.store.GetCounter(name)
-	if !ok {
-		service.store.SetCounter(name, newValue)
-		return
+	delta := newValue
+
+	if ok && len(value) > 0 {
+		newValue += value[len(value)-1]
 	}
-	last := value[len(value)-1]
-	service.store.SetCounter(name, last+newValue)
+	service.store.SetCounter(name, newValue)
 	if service.saver != nil {
-		service.saver.OnMetricChanged()
+		metric := models.Metrics{
+			ID:    name,
+			MType: "counter",
+			Delta: &delta,
+		}
+		service.saver.OnMetricChanged(metric)
 	}
 }
 
 func (service *MetricService) UpdateGauge(name string, value float64) {
 	service.store.SetGauge(name, value)
 	if service.saver != nil {
-		service.saver.OnMetricChanged()
+		metric := models.Metrics{
+			ID:    name,
+			MType: "gauge",
+			Value: &value,
+		}
+		service.saver.OnMetricChanged(metric)
 	}
 }
 

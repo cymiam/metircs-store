@@ -130,6 +130,12 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 
 	switch metricType {
 	case "counter":
+
+		if metric.Delta == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
 		handler.metricService.UpdateCounter(metricName, *metric.Delta)
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
@@ -137,6 +143,11 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 			zap.Int("MetricValue", int(*metric.Delta)))
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
+
+		if metric.Value == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		handler.metricService.UpdateGauge(metricName, *metric.Value)
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
