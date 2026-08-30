@@ -35,7 +35,7 @@ func main() {
 	conn, err := pgx.Connect(context.Background(), config.ConnectionString)
 
 	if err != nil {
-		log.Fatal("Unable to connect to database: %w\n", err)
+		log.Println("Unable to connect to database: %w\n", err)
 	}
 	defer conn.Close(context.Background())
 
