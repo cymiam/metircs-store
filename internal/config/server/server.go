@@ -8,10 +8,11 @@ import (
 )
 
 type ServerConfig struct {
-	Addr            string `env:"ADDRESS"`
-	StoreInterval   int    `env:"STORE_INTERVAL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
+	Addr             string `env:"ADDRESS"`
+	StoreInterval    int    `env:"STORE_INTERVAL"`
+	FileStoragePath  string `env:"FILE_STORAGE_PATH"`
+	Restore          bool   `env:"RESTORE"`
+	ConnectionString string `env:"DATABASE_DSN"`
 }
 
 func parseServerFlags(serverConfig *ServerConfig) {
@@ -19,6 +20,7 @@ func parseServerFlags(serverConfig *ServerConfig) {
 	flag.StringVar(&serverConfig.FileStoragePath, "f", "metrics.json", "local metrics storage path")
 	flag.IntVar(&serverConfig.StoreInterval, "i", 300, "Metrics update offset in seconds")
 	flag.BoolVar(&serverConfig.Restore, "r", false, "Start server with old metrics")
+	flag.StringVar(&serverConfig.ConnectionString, "d", "postgres://postgres:mysecretpassword@localhost:5432/metrics?sslmode=disable", "Connection string to database")
 	flag.Parse()
 }
 

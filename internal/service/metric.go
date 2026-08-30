@@ -1,8 +1,12 @@
 package service
 
 import (
+	"context"
+	"time"
+
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/repository"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -10,12 +14,14 @@ type MetricService struct {
 	store  repository.MetricRepository
 	saver  *MetricSaver
 	logger *zap.Logger
+	db     *pgx.Conn
 }
 
 type MetricServiceParams struct {
 	Store  repository.MetricRepository
 	Saver  *MetricSaver
 	Logger *zap.Logger
+	DB     *pgx.Conn
 }
 
 func NewMetricService(config MetricServiceParams) *MetricService {
@@ -23,6 +29,7 @@ func NewMetricService(config MetricServiceParams) *MetricService {
 		store:  config.Store,
 		saver:  config.Saver,
 		logger: config.Logger,
+		db:     config.DB,
 	}
 }
 
@@ -70,4 +77,10 @@ func (service *MetricService) GetCounters() map[string][]int64 {
 
 func (service *MetricService) GetGauges() map[string]float64 {
 	return service.store.GetGauges()
+}
+
+func (service *MetricService) PingDB() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return service.db.Ping(ctx)
 }

@@ -16,10 +16,11 @@ func TestParseServerConfig(t *testing.T) {
 		{
 			name: "Deafult Config",
 			want: &config.ServerConfig{
-				Addr:            "localhost:8080",
-				StoreInterval:   300,
-				FileStoragePath: "metrics.json",
-				Restore:         false,
+				Addr:             "localhost:8080",
+				StoreInterval:    300,
+				FileStoragePath:  "metrics.json",
+				Restore:          false,
+				ConnectionString: "postgres://postgres:mysecretpassword@localhost:5432/metrics?sslmode=disable",
 			},
 		},
 	}

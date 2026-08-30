@@ -203,6 +203,17 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 	}
 }
 
+func (handler *MetricHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	err := handler.metricService.PingDB()
+	if err != nil {
+		handler.logger.Error("Error ping db", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func NewMetricRouter(metricHandler *MetricHandler, logger *zap.Logger) chi.Router {
 	r := chi.NewRouter()
 
@@ -222,6 +233,8 @@ func NewMetricRouter(metricHandler *MetricHandler, logger *zap.Logger) chi.Route
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", metricHandler.HandleGetMetrics)
 	})
+
+	r.Get("/ping", metricHandler.HandleHealth)
 
 	return r
 }
