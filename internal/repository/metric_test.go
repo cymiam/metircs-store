@@ -14,7 +14,7 @@ func TestNewStore(t *testing.T) {
 			name: "Test New Mem storage",
 			want: &MemStorage{
 				Gauges:   make(map[string]float64),
-				Counters: make(map[string][]int64),
+				Counters: make(map[string]int64),
 			},
 		},
 	}
@@ -30,42 +30,42 @@ func TestNewStore(t *testing.T) {
 func TestMemStorage_GetCounter(t *testing.T) {
 	type fields struct {
 		gauges   map[string]float64
-		counters map[string][]int64
+		counters map[string]int64
 	}
 
 	tests := []struct {
 		name       string
 		fields     fields
 		metricName string
-		want       []int64
+		want       int64
 		want1      bool
 	}{
 		{
 			name: "Test Positive",
 			fields: fields{
-				counters: map[string][]int64{
-					"test": []int64{1, 2, 3},
+				counters: map[string]int64{
+					"test": int64(6),
 				},
 				gauges: map[string]float64{
 					"test2": 3.14,
 				},
 			},
 			metricName: "test",
-			want:       []int64{1, 2, 3},
+			want:       int64(6),
 			want1:      true,
 		},
 		{
 			name: "Test Negative",
 			fields: fields{
-				counters: map[string][]int64{
-					"test": []int64{1, 2, 3},
+				counters: map[string]int64{
+					"test": int64(5),
 				},
 				gauges: map[string]float64{
 					"test2": 3.14,
 				},
 			},
 			metricName: "test2",
-			want:       nil,
+			want:       int64(0),
 			want1:      false,
 		},
 	}
@@ -89,7 +89,7 @@ func TestMemStorage_GetCounter(t *testing.T) {
 func TestMemStorage_GetGauge(t *testing.T) {
 	type fields struct {
 		gauges   map[string]float64
-		counters map[string][]int64
+		counters map[string]int64
 	}
 	tests := []struct {
 		name       string
@@ -101,8 +101,8 @@ func TestMemStorage_GetGauge(t *testing.T) {
 		{
 			name: "Test Positive",
 			fields: fields{
-				counters: map[string][]int64{
-					"test": []int64{1, 2, 3},
+				counters: map[string]int64{
+					"test": int64(5),
 				},
 				gauges: map[string]float64{
 					"test2": 3.14,
@@ -115,8 +115,8 @@ func TestMemStorage_GetGauge(t *testing.T) {
 		{
 			name: "Test Negative",
 			fields: fields{
-				counters: map[string][]int64{
-					"test": []int64{1, 2, 3},
+				counters: map[string]int64{
+					"test": int64(5),
 				},
 				gauges: map[string]float64{
 					"test2": 3.14,
@@ -147,7 +147,7 @@ func TestMemStorage_GetGauge(t *testing.T) {
 func TestMemStorage_GetGauges(t *testing.T) {
 	type fields struct {
 		gauges   map[string]float64
-		counters map[string][]int64
+		counters map[string]int64
 	}
 	tests := []struct {
 		name   string
@@ -157,8 +157,8 @@ func TestMemStorage_GetGauges(t *testing.T) {
 		{
 			name: "Test Positive",
 			fields: fields{
-				counters: map[string][]int64{
-					"test": []int64{1, 2, 3},
+				counters: map[string]int64{
+					"test": int64(5),
 				},
 				gauges: map[string]float64{
 					"test2": 3.14,
@@ -187,28 +187,28 @@ func TestMemStorage_GetGauges(t *testing.T) {
 func TestMemStorage_GetCounters(t *testing.T) {
 	type fields struct {
 		gauges   map[string]float64
-		counters map[string][]int64
+		counters map[string]int64
 	}
 	tests := []struct {
 		name   string
 		fields fields
-		want   map[string][]int64
+		want   map[string]int64
 	}{
 		{
 			name: "Test Positive",
 			fields: fields{
-				counters: map[string][]int64{
-					"test1": []int64{1, 2, 3},
-					"test2": []int64{3, 2, 1},
+				counters: map[string]int64{
+					"test1": int64(6),
+					"test2": int64(5),
 				},
 				gauges: map[string]float64{
 					"test2": 3.14,
 					"test3": 4.5,
 				},
 			},
-			want: map[string][]int64{
-				"test1": []int64{1, 2, 3},
-				"test2": []int64{3, 2, 1},
+			want: map[string]int64{
+				"test1": int64(6),
+				"test2": int64(5),
 			},
 		},
 	}

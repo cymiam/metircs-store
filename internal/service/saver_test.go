@@ -43,9 +43,7 @@ func TestMetricSaver_AppendMetricsToJson(t *testing.T) {
 	requireMetricGauge(t, events[3], "temperature", 10.5)
 	requireMetricGauge(t, events[4], "temperature", 12)
 
-	// В JSONL хранятся исходные дельты, а MemStorage содержит историю
-	// накопленных значений counter.
-	require.Equal(t, []int64{2, 5}, store.Counters["requests"])
+	require.Equal(t, int64(5), store.Counters["requests"])
 }
 
 func TestMetricSaver_RestoreMetrics(t *testing.T) {
@@ -65,7 +63,7 @@ func TestMetricSaver_RestoreMetrics(t *testing.T) {
 	saver := newTestMetricSaver(t, path, 0, store)
 	require.NoError(t, saver.PopulateStore())
 
-	require.Equal(t, []int64{2, 5, 6}, store.Counters["requests"])
+	require.Equal(t, int64(6), store.Counters["requests"])
 	require.Equal(t, 12.0, store.Gauges["temperature"])
 
 	metricService := NewMetricService(MetricServiceParams{
@@ -77,7 +75,7 @@ func TestMetricSaver_RestoreMetrics(t *testing.T) {
 	metricService.UpdateCounter("requests", 6)
 	metricService.UpdateGauge("temperature", 14)
 
-	require.Equal(t, []int64{2, 5, 6, 12}, store.Counters["requests"])
+	require.Equal(t, int64(12), store.Counters["requests"])
 	require.Equal(t, 14.0, store.Gauges["temperature"])
 
 }

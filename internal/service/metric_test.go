@@ -26,7 +26,7 @@ func TestMetricService_UpdateCounter(t *testing.T) {
 			service.store.SetCounter("test", 1)
 			service.UpdateCounter(tt.metricName, tt.newValue)
 
-			expected := []int64{1, 3}
+			expected := int64(3)
 			got, _ := service.GetCounter("test")
 
 			assert.Equal(t, expected, got)
