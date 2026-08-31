@@ -157,10 +157,8 @@ func (m *MetricSaver) PopulateStore() error {
 
 			total := *metric.Delta
 
-			values, ok := newStore.GetCounter(metric.ID)
-			if ok && len(values) > 0 {
-				total += values[len(values)-1]
-			}
+			values, _ := newStore.GetCounter(metric.ID)
+			total += values
 
 			newStore.SetCounter(metric.ID, total)
 

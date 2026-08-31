@@ -71,9 +71,8 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		last := value[len(value)-1]
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%d", last)))
+		w.Write([]byte(fmt.Sprintf("%d", value)))
 	case "gauge":
 		value, ok := handler.metricService.GetGauge(metricName)
 		if !ok {
@@ -186,8 +185,7 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		last := value[len(value)-1]
-		metric.Delta = &last
+		metric.Delta = &value
 		easyjson.MarshalToHTTPResponseWriter(metric, w)
 	case "gauge":
 		value, ok := handler.metricService.GetGauge(metricName)
