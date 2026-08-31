@@ -103,7 +103,7 @@ func newTestMetricSaver(
 	return saver
 }
 
-func readMetricEvents(t *testing.T, path string) []models.Metrics {
+func readMetricEvents(t *testing.T, path string) []models.Metric {
 	t.Helper()
 
 	file, err := os.Open(path)
@@ -113,10 +113,10 @@ func readMetricEvents(t *testing.T, path string) []models.Metrics {
 	}()
 
 	decoder := json.NewDecoder(file)
-	events := make([]models.Metrics, 0)
+	events := make([]models.Metric, 0)
 
 	for i := 0; ; i++ {
-		var metric models.Metrics
+		var metric models.Metric
 
 		err := decoder.Decode(&metric)
 		if errors.Is(err, io.EOF) {
@@ -132,7 +132,7 @@ func readMetricEvents(t *testing.T, path string) []models.Metrics {
 
 func requireMetricCounter(
 	t *testing.T,
-	metric models.Metrics,
+	metric models.Metric,
 	id string,
 	delta int64,
 ) {
@@ -147,7 +147,7 @@ func requireMetricCounter(
 
 func requireMetricGauge(
 	t *testing.T,
-	metric models.Metrics,
+	metric models.Metric,
 	id string,
 	value float64,
 ) {

@@ -3,6 +3,10 @@ package repository
 import (
 	"reflect"
 	"testing"
+
+	models "github.com/cymiam/metrics-store/internal/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewStore(t *testing.T) {
@@ -27,200 +31,189 @@ func TestNewStore(t *testing.T) {
 	}
 }
 
-func TestMemStorage_GetCounter(t *testing.T) {
-	type fields struct {
-		gauges   map[string]float64
-		counters map[string]int64
+func TestMemStorage_GetMetric(t *testing.T) {
+
+	m := &MemStorage{
+		Counters: map[string]int64{
+			"testCounter": int64(5),
+		},
+		Gauges: map[string]float64{
+			"testGauge": 3.14,
+		},
 	}
+
+	counterValue := int64(5)
+	gaugeValue := 3.14
 
 	tests := []struct {
 		name       string
-		fields     fields
 		metricName string
-		want       int64
-		want1      bool
+		metricType string
+		want       models.Metric
+		wantErr    bool
 	}{
 		{
-			name: "Test Positive",
-			fields: fields{
-				counters: map[string]int64{
-					"test": int64(6),
-				},
-				gauges: map[string]float64{
-					"test2": 3.14,
-				},
-			},
-			metricName: "test",
-			want:       int64(6),
-			want1:      true,
+			name:       "Get existing counter",
+			metricName: "testCounter",
+			metricType: "counter",
+			want:       models.Metric{ID: "testCounter", MType: "counter", Delta: &counterValue},
+			wantErr:    false,
 		},
 		{
-			name: "Test Negative",
-			fields: fields{
-				counters: map[string]int64{
-					"test": int64(5),
-				},
-				gauges: map[string]float64{
-					"test2": 3.14,
-				},
-			},
-			metricName: "test2",
-			want:       int64(0),
-			want1:      false,
+			name:       "Get non existing counter",
+			metricName: "nonCounter",
+			metricType: "counter",
+			want:       models.Metric{},
+			wantErr:    true,
+		},
+		{
+			name:       "Get existing gauge",
+			metricName: "testGauge",
+			metricType: "gauge",
+			want:       models.Metric{ID: "testGauge", MType: "gauge", Value: &gaugeValue},
+			wantErr:    false,
+		},
+		{
+			name:       "Get non existing gauge",
+			metricName: "nonGauge",
+			metricType: "gauge",
+			want:       models.Metric{},
+			wantErr:    true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MemStorage{
-				Gauges:   tt.fields.gauges,
-				Counters: tt.fields.counters,
+			got, err := m.GetMetric(t.Context(), tt.metricName, tt.metricType)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				return
 			}
-			got, got1 := m.GetCounter(tt.metricName)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemStorage.GetCounter() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("MemStorage.GetCounter() got1 = %v, want %v", got1, tt.want1)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
-func TestMemStorage_GetGauge(t *testing.T) {
-	type fields struct {
-		gauges   map[string]float64
-		counters map[string]int64
+func TestMemStorage_GetAll(t *testing.T) {
+	m := &MemStorage{
+		Counters: map[string]int64{
+			"testCounter": int64(5),
+		},
+		Gauges: map[string]float64{
+			"testGauge": 3.14,
+		},
 	}
+
+	counterValue := int64(5)
+	gaugeValue := 3.14
+
 	tests := []struct {
 		name       string
-		fields     fields
 		metricName string
-		want       float64
-		want1      bool
+		metricType string
+		want       []models.Metric
 	}{
 		{
-			name: "Test Positive",
-			fields: fields{
-				counters: map[string]int64{
-					"test": int64(5),
-				},
-				gauges: map[string]float64{
-					"test2": 3.14,
-				},
+			name:       "Get all metrics",
+			metricName: "testCounter",
+			metricType: "counter",
+			want: []models.Metric{
+				{ID: "testCounter", MType: "counter", Delta: &counterValue},
+				{ID: "testGauge", MType: "gauge", Value: &gaugeValue},
 			},
-			metricName: "test2",
-			want:       3.14,
-			want1:      true,
-		},
-		{
-			name: "Test Negative",
-			fields: fields{
-				counters: map[string]int64{
-					"test": int64(5),
-				},
-				gauges: map[string]float64{
-					"test2": 3.14,
-				},
-			},
-			metricName: "test",
-			want:       0.0,
-			want1:      false,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MemStorage{
-				Gauges:   tt.fields.gauges,
-				Counters: tt.fields.counters,
-			}
-			got, got1 := m.GetGauge(tt.metricName)
-			if got != tt.want {
-				t.Errorf("MemStorage.GetGauge() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("MemStorage.GetGauge() got1 = %v, want %v", got1, tt.want1)
-			}
+			got, err := m.GetAll(t.Context())
+
+			require.NoError(t, err)
+
+			require.ElementsMatch(t, tt.want, got)
 		})
 	}
 }
 
-func TestMemStorage_GetGauges(t *testing.T) {
-	type fields struct {
-		gauges   map[string]float64
-		counters map[string]int64
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   map[string]float64
-	}{
-		{
-			name: "Test Positive",
-			fields: fields{
-				counters: map[string]int64{
-					"test": int64(5),
-				},
-				gauges: map[string]float64{
-					"test2": 3.14,
-					"test3": 4.5,
-				},
-			},
-			want: map[string]float64{
-				"test2": 3.14,
-				"test3": 4.5,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := &MemStorage{
-				Gauges:   tt.fields.gauges,
-				Counters: tt.fields.counters,
-			}
-			if got := m.GetGauges(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemStorage.GetGauges() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+func TestMemStorage_SetMetric(t *testing.T) {
 
-func TestMemStorage_GetCounters(t *testing.T) {
-	type fields struct {
-		gauges   map[string]float64
-		counters map[string]int64
-	}
+	counterValue := int64(5)
+	gaugeValue := 3.14
+
 	tests := []struct {
-		name   string
-		fields fields
-		want   map[string]int64
+		name    string
+		metric  models.Metric
+		wantErr bool
 	}{
 		{
-			name: "Test Positive",
-			fields: fields{
-				counters: map[string]int64{
-					"test1": int64(6),
-					"test2": int64(5),
-				},
-				gauges: map[string]float64{
-					"test2": 3.14,
-					"test3": 4.5,
-				},
+			name: "Create counter",
+			metric: models.Metric{
+				ID:    "TestCounter",
+				MType: "counter",
+				Delta: &counterValue,
 			},
-			want: map[string]int64{
-				"test1": int64(6),
-				"test2": int64(5),
+			wantErr: false,
+		},
+		{
+			name: "Create counter no delta",
+			metric: models.Metric{
+				ID:    "TestCounter2",
+				MType: "counter",
 			},
+			wantErr: true,
+		},
+		{
+			name: "Create Gauge",
+			metric: models.Metric{
+				ID:    "TestGauge",
+				MType: "gauge",
+				Value: &gaugeValue,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Create gauge no value",
+			metric: models.Metric{
+				ID:    "TestGauge2",
+				MType: "gauge",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Create Unknown type",
+			metric: models.Metric{
+				ID:    "TestUnknown",
+				MType: "unknown",
+			},
+			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MemStorage{
-				Gauges:   tt.fields.gauges,
-				Counters: tt.fields.counters,
+			m := NewStore()
+			err := m.SetMetric(t.Context(), tt.metric)
+
+			if tt.wantErr {
+				require.Error(t, err)
+
+				metrics, err := m.GetAll(t.Context())
+				require.NoError(t, err)
+				require.Empty(t, metrics)
+
+				return
 			}
-			if got := m.GetCounters(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemStorage.GetCounters() = %v, want %v", got, tt.want)
-			}
+
+			require.NoError(t, err)
+
+			got, err := m.GetMetric(
+				t.Context(),
+				tt.metric.ID,
+				tt.metric.MType,
+			)
+			require.NoError(t, err)
+			require.Equal(t, tt.metric, got)
 		})
 	}
 }

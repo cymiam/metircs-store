@@ -39,8 +39,8 @@ func main() {
 				sendMetric(agent.Client, agent.Config.Addr, m, logger)
 			}
 			randValue := rand.Float64()
-			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "PollCount", MType: "counter", Delta: &agent.PollCount}, logger)
-			sendMetric(agent.Client, agent.Config.Addr, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &randValue}, logger)
+			sendMetric(agent.Client, agent.Config.Addr, models.Metric{ID: "PollCount", MType: "counter", Delta: &agent.PollCount}, logger)
+			sendMetric(agent.Client, agent.Config.Addr, models.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue}, logger)
 			lastReport = time.Now()
 		}
 		time.Sleep(time.Duration(agent.Config.PollInterval) * time.Second)
@@ -48,7 +48,7 @@ func main() {
 
 }
 
-func sendMetric(client resty.Client, addr string, m models.Metrics, logger *zap.Logger) {
+func sendMetric(client resty.Client, addr string, m models.Metric, logger *zap.Logger) {
 
 	metric, err := easyjson.Marshal(m)
 	if err != nil {

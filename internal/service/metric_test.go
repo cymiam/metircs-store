@@ -3,6 +3,7 @@ package service
 import (
 	"testing"
 
+	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/repository"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,11 +24,15 @@ func TestMetricService_UpdateCounter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			service := NewMetricService(MetricServiceParams{Store: repository.NewStore()})
-			service.store.SetCounter("test", 1)
+			one := int64(1)
+			service.store.SetMetric(t.Context(), models.Metric{ID: "test", MType: "counter", Delta: &one})
 			service.UpdateCounter(tt.metricName, tt.newValue)
 
-			expected := int64(3)
-			got, _ := service.GetCounter("test")
+			val := int64(3)
+			expected := models.Metric{ID: "test", MType: "counter", Delta: &val}
+			got, err := service.GetMetric("test", "counter")
+
+			assert.NoError(t, err)
 
 			assert.Equal(t, expected, got)
 		})

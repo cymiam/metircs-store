@@ -23,38 +23,38 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 	}
 }
 
-func (a *Agent) PollRuntimeMetrics() []models.Metrics {
+func (a *Agent) PollRuntimeMetrics() []models.Metric {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	metrics := []models.Metrics{models.Metrics{ID: "Alloc", Value: helper(float64(m.Alloc)), MType: "gauge"}}
+	metrics := []models.Metric{models.Metric{ID: "Alloc", Value: helper(float64(m.Alloc)), MType: "gauge"}}
 
-	metrics = append(metrics, models.Metrics{ID: "BuckHashSys", Value: helper(float64(m.BuckHashSys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "Frees", Value: helper(float64(m.Frees)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "GCCPUFraction", Value: helper(float64(m.GCCPUFraction)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "GCSys", Value: helper(float64(m.GCSys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "HeapAlloc", Value: helper(float64(m.HeapAlloc)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "HeapIdle", Value: helper(float64(m.HeapIdle)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "HeapInuse", Value: helper(float64(m.HeapInuse)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "HeapObjects", Value: helper(float64(m.HeapObjects)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "HeapReleased", Value: helper(float64(m.HeapReleased)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "HeapSys", Value: helper(float64(m.HeapSys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "LastGC", Value: helper(float64(m.LastGC)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "Lookups", Value: helper(float64(m.Lookups)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "MCacheInuse", Value: helper(float64(m.MCacheInuse)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "MCacheSys", Value: helper(float64(m.MCacheSys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "MSpanInuse", Value: helper(float64(m.MSpanInuse)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "MSpanSys", Value: helper(float64(m.MSpanSys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "Mallocs", Value: helper(float64(m.Mallocs)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "NextGC", Value: helper(float64(m.NextGC)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "NumForcedGC", Value: helper(float64(m.NumForcedGC)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "NumGC", Value: helper(float64(m.NumGC)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "OtherSys", Value: helper(float64(m.OtherSys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "PauseTotalNs", Value: helper(float64(m.PauseTotalNs)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "StackInuse", Value: helper(float64(m.StackInuse)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "StackSys", Value: helper(float64(m.StackSys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "Sys", Value: helper(float64(m.Sys)), MType: "gauge"})
-	metrics = append(metrics, models.Metrics{ID: "TotalAlloc", Value: helper(float64(m.TotalAlloc)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "BuckHashSys", Value: helper(float64(m.BuckHashSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "Frees", Value: helper(float64(m.Frees)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "GCCPUFraction", Value: helper(float64(m.GCCPUFraction)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "GCSys", Value: helper(float64(m.GCSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "HeapAlloc", Value: helper(float64(m.HeapAlloc)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "HeapIdle", Value: helper(float64(m.HeapIdle)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "HeapInuse", Value: helper(float64(m.HeapInuse)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "HeapObjects", Value: helper(float64(m.HeapObjects)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "HeapReleased", Value: helper(float64(m.HeapReleased)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "HeapSys", Value: helper(float64(m.HeapSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "LastGC", Value: helper(float64(m.LastGC)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "Lookups", Value: helper(float64(m.Lookups)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "MCacheInuse", Value: helper(float64(m.MCacheInuse)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "MCacheSys", Value: helper(float64(m.MCacheSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "MSpanInuse", Value: helper(float64(m.MSpanInuse)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "MSpanSys", Value: helper(float64(m.MSpanSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "Mallocs", Value: helper(float64(m.Mallocs)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "NextGC", Value: helper(float64(m.NextGC)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "NumForcedGC", Value: helper(float64(m.NumForcedGC)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "NumGC", Value: helper(float64(m.NumGC)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "OtherSys", Value: helper(float64(m.OtherSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "PauseTotalNs", Value: helper(float64(m.PauseTotalNs)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "StackInuse", Value: helper(float64(m.StackInuse)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "StackSys", Value: helper(float64(m.StackSys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "Sys", Value: helper(float64(m.Sys)), MType: "gauge"})
+	metrics = append(metrics, models.Metric{ID: "TotalAlloc", Value: helper(float64(m.TotalAlloc)), MType: "gauge"})
 
 	a.PollCount++
 	return metrics

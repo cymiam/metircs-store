@@ -34,12 +34,11 @@ func NewMetricService(config MetricServiceParams) *MetricService {
 }
 
 func (service *MetricService) UpdateCounter(name string, delta int64) {
-	value, _ := service.store.GetCounter(name)
-	newValue := delta + value
 
-	service.store.SetCounter(name, newValue)
+	service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "counter", Delta: &delta})
+
 	if service.saver != nil {
-		metric := models.Metrics{
+		metric := models.Metric{
 			ID:    name,
 			MType: "counter",
 			Delta: &delta,
@@ -49,9 +48,9 @@ func (service *MetricService) UpdateCounter(name string, delta int64) {
 }
 
 func (service *MetricService) UpdateGauge(name string, value float64) {
-	service.store.SetGauge(name, value)
+	service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "gauge", Value: &value})
 	if service.saver != nil {
-		metric := models.Metrics{
+		metric := models.Metric{
 			ID:    name,
 			MType: "gauge",
 			Value: &value,
@@ -60,20 +59,12 @@ func (service *MetricService) UpdateGauge(name string, value float64) {
 	}
 }
 
-func (service *MetricService) GetCounter(name string) (int64, bool) {
-	return service.store.GetCounter(name)
+func (service *MetricService) GetMetric(name, metricType string) (models.Metric, error) {
+	return service.store.GetMetric(context.TODO(), name, metricType)
 }
 
-func (service *MetricService) GetGauge(name string) (float64, bool) {
-	return service.store.GetGauge(name)
-}
-
-func (service *MetricService) GetCounters() map[string]int64 {
-	return service.store.GetCounters()
-}
-
-func (service *MetricService) GetGauges() map[string]float64 {
-	return service.store.GetGauges()
+func (service *MetricService) GetAll() ([]models.Metric, error) {
+	return service.store.GetAll(context.TODO())
 }
 
 func (service *MetricService) PingDB() error {
