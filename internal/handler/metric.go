@@ -71,9 +71,8 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		last := value[len(value)-1]
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%d", last)))
+		w.Write([]byte(fmt.Sprintf("%d", value)))
 	case "gauge":
 		value, ok := handler.metricService.GetGauge(metricName)
 		if !ok {
@@ -186,8 +185,7 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		last := value[len(value)-1]
-		metric.Delta = &last
+		metric.Delta = &value
 		easyjson.MarshalToHTTPResponseWriter(metric, w)
 	case "gauge":
 		value, ok := handler.metricService.GetGauge(metricName)
@@ -201,6 +199,17 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 		w.Header().Set("Content-type", "text/plain; charset=utf-8")
 		http.Error(w, fmt.Sprintf("Неизвестный тип метрики: %s", metricType), http.StatusBadRequest)
 	}
+}
+
+func (handler *MetricHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	err := handler.metricService.PingDB()
+	if err != nil {
+		handler.logger.Error("Error ping db", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func NewMetricRouter(metricHandler *MetricHandler, logger *zap.Logger) chi.Router {
@@ -222,6 +231,8 @@ func NewMetricRouter(metricHandler *MetricHandler, logger *zap.Logger) chi.Route
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", metricHandler.HandleGetMetrics)
 	})
+
+	r.Get("/ping", metricHandler.HandleHealth)
 
 	return r
 }
