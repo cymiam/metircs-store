@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ type MetricSaver struct {
 	storeInterval time.Duration
 	store         *repository.MemStorage
 	logger        *zap.Logger
-	queue         []models.Metrics
+	queue         []models.Metric
 }
 
 type MetricSaverParams struct {
@@ -41,7 +42,7 @@ func NewMetricSaver(params MetricSaverParams) (*MetricSaver, error) {
 		storeInterval: time.Duration(params.StoreInterval) * time.Second,
 		store:         params.Store,
 		logger:        params.Logger,
-		queue:         make([]models.Metrics, 0),
+		queue:         make([]models.Metric, 0),
 	}
 
 	if params.Restore {
@@ -122,7 +123,7 @@ func (m *MetricSaver) PopulateStore() error {
 	metricNumber := 0
 
 	for {
-		var metric models.Metrics
+		var metric models.Metric
 
 		err := decoder.Decode(&metric)
 
@@ -145,36 +146,9 @@ func (m *MetricSaver) PopulateStore() error {
 			)
 		}
 
-		switch metric.MType {
-		case "counter":
-			if metric.Delta == nil {
-				return fmt.Errorf(
-					"Metric %d: counter %q has no delta",
-					metricNumber,
-					metric.ID,
-				)
-			}
-
-			total := *metric.Delta
-
-			values, ok := newStore.GetCounter(metric.ID)
-			if ok && len(values) > 0 {
-				total += values[len(values)-1]
-			}
-
-			newStore.SetCounter(metric.ID, total)
-
-		case "gauge":
-			if metric.Value == nil {
-				return fmt.Errorf(
-					"Metric %d: gauge %q has no value",
-					metricNumber,
-					metric.ID,
-				)
-			}
-
-			newStore.SetGauge(metric.ID, *metric.Value)
-
+		if err := newStore.SetMetric(context.TODO(), metric); err != nil {
+			m.logger.Error("Error restore metric ", zap.Int("Number: ", metricNumber))
+			return err
 		}
 
 		metricNumber++
@@ -194,7 +168,7 @@ func (m *MetricSaver) PopulateStore() error {
 	return nil
 }
 
-func (m *MetricSaver) OnMetricChanged(metric models.Metrics) {
+func (m *MetricSaver) OnMetricChanged(metric models.Metric) {
 	m.queue = append(m.queue, metric)
 
 	// При периодической записи событие заберёт тикер.

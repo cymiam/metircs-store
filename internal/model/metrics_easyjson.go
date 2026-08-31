@@ -4,6 +4,7 @@ package models
 
 import (
 	json "encoding/json"
+
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -17,7 +18,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson2220f231DecodeGithubComCymiamMetircsStoreInternalModel(in *jlexer.Lexer, out *Metrics) {
+func easyjson2220f231DecodeGithubComCymiamMetircsStoreInternalModel(in *jlexer.Lexer, out *Metric) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -81,7 +82,7 @@ func easyjson2220f231DecodeGithubComCymiamMetircsStoreInternalModel(in *jlexer.L
 		in.Consumed()
 	}
 }
-func easyjson2220f231EncodeGithubComCymiamMetircsStoreInternalModel(out *jwriter.Writer, in Metrics) {
+func easyjson2220f231EncodeGithubComCymiamMetircsStoreInternalModel(out *jwriter.Writer, in Metric) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -109,25 +110,25 @@ func easyjson2220f231EncodeGithubComCymiamMetircsStoreInternalModel(out *jwriter
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v Metrics) MarshalJSON() ([]byte, error) {
+func (v Metric) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjson2220f231EncodeGithubComCymiamMetircsStoreInternalModel(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v Metrics) MarshalEasyJSON(w *jwriter.Writer) {
+func (v Metric) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson2220f231EncodeGithubComCymiamMetircsStoreInternalModel(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *Metrics) UnmarshalJSON(data []byte) error {
+func (v *Metric) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjson2220f231DecodeGithubComCymiamMetircsStoreInternalModel(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *Metrics) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *Metric) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson2220f231DecodeGithubComCymiamMetircsStoreInternalModel(l, v)
 }

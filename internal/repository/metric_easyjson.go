@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson9478868cDecodeGithubComCymiamMetircsStoreInternalRepository(in *jlexer.Lexer, out *MemStorage) {
+func easyjson9478868cDecodeGithubComCymiamMetricsStoreInternalRepository(in *jlexer.Lexer, out *MemStorage) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -56,36 +56,15 @@ func easyjson9478868cDecodeGithubComCymiamMetircsStoreInternalRepository(in *jle
 				in.Skip()
 			} else {
 				in.Delim('{')
-				out.Counters = make(map[string][]int64)
+				out.Counters = make(map[string]int64)
 				for !in.IsDelim('}') {
 					key := string(in.String())
 					in.WantColon()
-					var v2 []int64
+					var v2 int64
 					if in.IsNull() {
 						in.Skip()
-						v2 = nil
 					} else {
-						in.Delim('[')
-						if v2 == nil {
-							if !in.IsDelim(']') {
-								v2 = make([]int64, 0, 8)
-							} else {
-								v2 = []int64{}
-							}
-						} else {
-							v2 = (v2)[:0]
-						}
-						for !in.IsDelim(']') {
-							var v3 int64
-							if in.IsNull() {
-								in.Skip()
-							} else {
-								v3 = int64(in.Int64())
-							}
-							v2 = append(v2, v3)
-							in.WantComma()
-						}
-						in.Delim(']')
+						v2 = int64(in.Int64())
 					}
 					(out.Counters)[key] = v2
 					in.WantComma()
@@ -102,7 +81,7 @@ func easyjson9478868cDecodeGithubComCymiamMetircsStoreInternalRepository(in *jle
 		in.Consumed()
 	}
 }
-func easyjson9478868cEncodeGithubComCymiamMetircsStoreInternalRepository(out *jwriter.Writer, in MemStorage) {
+func easyjson9478868cEncodeGithubComCymiamMetricsStoreInternalRepository(out *jwriter.Writer, in MemStorage) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -113,16 +92,16 @@ func easyjson9478868cEncodeGithubComCymiamMetircsStoreInternalRepository(out *jw
 			out.RawString(`null`)
 		} else {
 			out.RawByte('{')
-			v4First := true
-			for v4Name, v4Value := range in.Gauges {
-				if v4First {
-					v4First = false
+			v3First := true
+			for v3Name, v3Value := range in.Gauges {
+				if v3First {
+					v3First = false
 				} else {
 					out.RawByte(',')
 				}
-				out.String(string(v4Name))
+				out.String(string(v3Name))
 				out.RawByte(':')
-				out.Float64(float64(v4Value))
+				out.Float64(float64(v3Value))
 			}
 			out.RawByte('}')
 		}
@@ -134,27 +113,16 @@ func easyjson9478868cEncodeGithubComCymiamMetircsStoreInternalRepository(out *jw
 			out.RawString(`null`)
 		} else {
 			out.RawByte('{')
-			v5First := true
-			for v5Name, v5Value := range in.Counters {
-				if v5First {
-					v5First = false
+			v4First := true
+			for v4Name, v4Value := range in.Counters {
+				if v4First {
+					v4First = false
 				} else {
 					out.RawByte(',')
 				}
-				out.String(string(v5Name))
+				out.String(string(v4Name))
 				out.RawByte(':')
-				if v5Value == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-					out.RawString("null")
-				} else {
-					out.RawByte('[')
-					for v6, v7 := range v5Value {
-						if v6 > 0 {
-							out.RawByte(',')
-						}
-						out.Int64(int64(v7))
-					}
-					out.RawByte(']')
-				}
+				out.Int64(int64(v4Value))
 			}
 			out.RawByte('}')
 		}
@@ -165,23 +133,23 @@ func easyjson9478868cEncodeGithubComCymiamMetircsStoreInternalRepository(out *jw
 // MarshalJSON supports json.Marshaler interface
 func (v MemStorage) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson9478868cEncodeGithubComCymiamMetircsStoreInternalRepository(&w, v)
+	easyjson9478868cEncodeGithubComCymiamMetricsStoreInternalRepository(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v MemStorage) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson9478868cEncodeGithubComCymiamMetircsStoreInternalRepository(w, v)
+	easyjson9478868cEncodeGithubComCymiamMetricsStoreInternalRepository(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *MemStorage) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson9478868cDecodeGithubComCymiamMetircsStoreInternalRepository(&r, v)
+	easyjson9478868cDecodeGithubComCymiamMetricsStoreInternalRepository(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *MemStorage) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson9478868cDecodeGithubComCymiamMetircsStoreInternalRepository(l, v)
+	easyjson9478868cDecodeGithubComCymiamMetricsStoreInternalRepository(l, v)
 }
