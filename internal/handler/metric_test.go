@@ -50,7 +50,7 @@ func createTestServer() chi.Router {
 	service := service.NewMetricService(service.MetricServiceParams{Store: repository, Logger: zap.NewNop()})
 	metricHandler := handler.NewMetricHandler(service, zap.NewNop())
 
-	r := handler.NewMetricRouter(metricHandler, zap.NewNop())
+	r := handler.NewRouter(handler.MainRouterParams{MetricHandler: metricHandler, Logger: zap.NewNop()})
 	return r
 }
 

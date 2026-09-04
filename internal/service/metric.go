@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"time"
 
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/repository"
@@ -14,7 +13,6 @@ type MetricService struct {
 	store  repository.MetricRepository
 	saver  *MetricSaver
 	logger *zap.Logger
-	db     *pgx.Conn
 }
 
 type MetricServiceParams struct {
@@ -29,13 +27,17 @@ func NewMetricService(config MetricServiceParams) *MetricService {
 		store:  config.Store,
 		saver:  config.Saver,
 		logger: config.Logger,
-		db:     config.DB,
 	}
 }
 
-func (service *MetricService) UpdateCounter(name string, delta int64) {
+func (service *MetricService) UpdateCounter(name string, delta int64) error {
 
-	service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "counter", Delta: &delta})
+	err := service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "counter", Delta: &delta})
+
+	if err != nil {
+		service.logger.Error(err.Error())
+		return err
+	}
 
 	if service.saver != nil {
 		metric := models.Metric{
@@ -45,10 +47,17 @@ func (service *MetricService) UpdateCounter(name string, delta int64) {
 		}
 		service.saver.OnMetricChanged(metric)
 	}
+
+	return nil
 }
 
-func (service *MetricService) UpdateGauge(name string, value float64) {
-	service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "gauge", Value: &value})
+func (service *MetricService) UpdateGauge(name string, value float64) error {
+	err := service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "gauge", Value: &value})
+
+	if err != nil {
+		service.logger.Error(err.Error())
+		return err
+	}
 	if service.saver != nil {
 		metric := models.Metric{
 			ID:    name,
@@ -57,6 +66,8 @@ func (service *MetricService) UpdateGauge(name string, value float64) {
 		}
 		service.saver.OnMetricChanged(metric)
 	}
+
+	return nil
 }
 
 func (service *MetricService) GetMetric(name, metricType string) (models.Metric, error) {
@@ -65,10 +76,4 @@ func (service *MetricService) GetMetric(name, metricType string) (models.Metric,
 
 func (service *MetricService) GetAll() ([]models.Metric, error) {
 	return service.store.GetAll(context.TODO())
-}
-
-func (service *MetricService) PingDB() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return service.db.Ping(ctx)
 }

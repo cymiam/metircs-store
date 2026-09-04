@@ -5,11 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	m "github.com/cymiam/metrics-store/internal/middleware"
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/service"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
@@ -37,14 +35,25 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 
 	switch metricType {
 	case "counter":
-		handler.metricService.UpdateCounter(metricName, int64(metricValue))
+		err := handler.metricService.UpdateCounter(metricName, int64(metricValue))
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
 			zap.Int("MetricValue", int(metricValue)))
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
-		handler.metricService.UpdateGauge(metricName, metricValue)
+		err := handler.metricService.UpdateGauge(metricName, metricValue)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
@@ -155,7 +164,12 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		handler.metricService.UpdateCounter(metricName, *metric.Delta)
+		err := handler.metricService.UpdateCounter(metricName, *metric.Delta)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
@@ -167,7 +181,13 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		handler.metricService.UpdateGauge(metricName, *metric.Value)
+
+		err := handler.metricService.UpdateGauge(metricName, *metric.Value)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
@@ -219,40 +239,4 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 		w.Header().Set("Content-type", "text/plain; charset=utf-8")
 		http.Error(w, fmt.Sprintf("Неизвестный тип метрики: %s", metricType), http.StatusBadRequest)
 	}
-}
-
-func (handler *MetricHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
-	err := handler.metricService.PingDB()
-	if err != nil {
-		handler.logger.Error("Error ping db", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func NewMetricRouter(metricHandler *MetricHandler, logger *zap.Logger) chi.Router {
-	r := chi.NewRouter()
-
-	r.Use(middleware.Compress(5, "application/json", "text/html"))
-	r.Use(middleware.AllowContentEncoding("gzip"))
-	r.Use(m.GzipDecompressMidlleware)
-	r.Use(m.RequestLoggerMiddleware(logger))
-
-	r.Route("/update", func(r chi.Router) {
-		r.Post("/", metricHandler.HandleUpdateJson)
-		r.Post("/{metric_type}/{metric_name}/{metric_value}", metricHandler.HandleUpdate)
-	})
-	r.Route("/value", func(r chi.Router) {
-		r.Post("/", metricHandler.HandleGetMetricJson)
-		r.Get("/{metric_type}/{metric_name}", metricHandler.HandleGetMetric)
-	})
-	r.Route("/", func(r chi.Router) {
-		r.Get("/", metricHandler.HandleGetMetrics)
-	})
-
-	r.Get("/ping", metricHandler.HandleHealth)
-
-	return r
 }
