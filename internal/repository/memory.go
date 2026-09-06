@@ -52,7 +52,7 @@ func (m *MemStorage) GetMetric(ctx context.Context, name, metricType string) (mo
 	case "gauge":
 		value, ok := m.Gauges[name]
 		if !ok {
-			return models.Metric{}, fmt.Errorf("Metric(%s):%s not found\n", metricType, name)
+			return models.Metric{}, fmt.Errorf("Metric(%s):%s not found", metricType, name)
 		}
 
 		return models.Metric{
@@ -63,7 +63,7 @@ func (m *MemStorage) GetMetric(ctx context.Context, name, metricType string) (mo
 	case "counter":
 		value, ok := m.Counters[name]
 		if !ok {
-			return models.Metric{}, fmt.Errorf("Metric(%s):%s not found\n", metricType, name)
+			return models.Metric{}, fmt.Errorf("Metric(%s):%s not found", metricType, name)
 		}
 		return models.Metric{
 			ID:    name,
@@ -71,7 +71,7 @@ func (m *MemStorage) GetMetric(ctx context.Context, name, metricType string) (mo
 			Delta: &value,
 		}, nil
 	}
-	return models.Metric{}, fmt.Errorf("Unknown metric type, %s\n", metricType)
+	return models.Metric{}, fmt.Errorf("unknown metric type, %s", metricType)
 }
 
 func (m *MemStorage) SetMetric(ctx context.Context, metric models.Metric) error {
@@ -89,5 +89,5 @@ func (m *MemStorage) SetMetric(ctx context.Context, metric models.Metric) error 
 		m.Counters[metric.ID] += *metric.Delta
 		return nil
 	}
-	return fmt.Errorf("Unknown metric type, %s\n", metric.MType)
+	return fmt.Errorf("unknown metric type, %s", metric.MType)
 }

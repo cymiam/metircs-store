@@ -133,7 +133,7 @@ func (m *MetricSaver) PopulateStore() error {
 
 		if err != nil {
 			return fmt.Errorf(
-				"Decode metric %d: %w",
+				"decode metric %d: %w",
 				metricNumber,
 				err,
 			)
@@ -147,7 +147,7 @@ func (m *MetricSaver) PopulateStore() error {
 		}
 
 		if err := newStore.SetMetric(context.TODO(), metric); err != nil {
-			m.logger.Error("Error restore metric ", zap.Int("Number: ", metricNumber))
+			m.logger.Error("error restore metric ", zap.Int("Number: ", metricNumber))
 			return err
 		}
 
@@ -180,7 +180,7 @@ func (m *MetricSaver) OnMetricChanged(metric models.Metric) {
 	if err := m.WriteToFile(); err != nil {
 		if m.logger != nil {
 			m.logger.Error(
-				"Cannot write metric",
+				"cannot write metric",
 				zap.String("metric", metric.ID),
 				zap.Error(err),
 			)

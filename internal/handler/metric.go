@@ -141,7 +141,7 @@ func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Re
 	w.Write([]byte(body))
 }
 
-func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Request) {
+func (handler *MetricHandler) HandleUpdateJSON(w http.ResponseWriter, r *http.Request) {
 
 	metric := models.Metric{}
 	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
@@ -205,7 +205,7 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http.Request) {
+func (handler *MetricHandler) HandleGetMetricJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-type", "application/json; charset=utf-8")
 	metric := models.Metric{}
 	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {

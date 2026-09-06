@@ -22,11 +22,11 @@ func NewRouter(params MainRouterParams) chi.Router {
 	r.Use(m.RequestLoggerMiddleware(params.Logger))
 
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/", params.MetricHandler.HandleUpdateJson)
+		r.Post("/", params.MetricHandler.HandleUpdateJSON)
 		r.Post("/{metric_type}/{metric_name}/{metric_value}", params.MetricHandler.HandleUpdate)
 	})
 	r.Route("/value", func(r chi.Router) {
-		r.Post("/", params.MetricHandler.HandleGetMetricJson)
+		r.Post("/", params.MetricHandler.HandleGetMetricJSON)
 		r.Get("/{metric_type}/{metric_name}", params.MetricHandler.HandleGetMetric)
 	})
 	r.Route("/", func(r chi.Router) {

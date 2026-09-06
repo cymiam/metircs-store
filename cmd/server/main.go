@@ -36,6 +36,10 @@ func main() {
 
 	config, err := config.ParseServerConfig()
 
+	if err != nil {
+		log.Fatal("Cannot parse server config: ", err)
+	}
+
 	var metricRepository repository.MetricRepository
 	var saver *service.MetricSaver
 	var pool *pgxpool.Pool

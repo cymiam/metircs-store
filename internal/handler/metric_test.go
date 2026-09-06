@@ -29,7 +29,7 @@ func createTestData(t *testing.T, server *httptest.Server,
 	assert.NoError(t, err, "error making HTTP request")
 }
 
-func createTestDataJson(t *testing.T, server *httptest.Server, path string,
+func createTestDataJSON(t *testing.T, server *httptest.Server, path string,
 	data models.Metric) {
 
 	req := resty.New().R()
@@ -334,13 +334,13 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 	jsonGaugeValue := 3.1415
 	jsonCounterValue := int64(5)
 
-	createTestDataJson(t, server, "/update", models.Metric{
+	createTestDataJSON(t, server, "/update", models.Metric{
 		MType: "counter",
 		ID:    "testCounterJson",
 		Delta: &jsonCounterValue,
 	})
 
-	createTestDataJson(t, server, "/update", models.Metric{
+	createTestDataJSON(t, server, "/update", models.Metric{
 		MType: "gauge",
 		ID:    "testGaugeJson",
 		Value: &jsonGaugeValue,
@@ -479,6 +479,8 @@ func TestMetricHandler_GzipJson(t *testing.T) {
 
 	req.Body = gz
 	_, err = req.Send()
+
+	require.NoError(t, err, "error sending request")
 
 	data2 := models.Metric{
 		ID:    "CounterJson",

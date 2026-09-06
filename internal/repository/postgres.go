@@ -114,7 +114,7 @@ func (p *PostrgreStorage) SetMetric(ctx context.Context, metric models.Metric) e
 			Suffix(`ON CONFLICT (id, type)
 				    DO UPDATE SET value = EXCLUDED.value`)
 	default:
-		return fmt.Errorf("Unknown metric type: %s", metric.MType)
+		return fmt.Errorf("unknown metric type: %s", metric.MType)
 	}
 	sql, args, err := builder.ToSql()
 

@@ -33,12 +33,12 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (w *loggingResponseWriter) Status() int {
-	if w.status == 0 {
+func (r *loggingResponseWriter) Status() int {
+	if r.status == 0 {
 		return http.StatusOK
 	}
 
-	return w.status
+	return r.status
 }
 
 // RequestLogger — middleware-логер для входящих HTTP-запросов.
