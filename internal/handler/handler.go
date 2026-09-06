@@ -33,6 +33,8 @@ func NewRouter(params MainRouterParams) chi.Router {
 		r.Get("/", params.MetricHandler.HandleGetMetrics)
 	})
 
+	r.Post("/updates/", params.MetricHandler.ProcessBatchJSON)
+
 	r.Get("/ping", params.HealthHandler.HandlePing)
 	return r
 }

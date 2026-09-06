@@ -35,12 +35,10 @@ func main() {
 		metrics := agent.PollRuntimeMetrics()
 
 		if time.Since(lastReport) >= time.Duration(agent.Config.ReportInterval*int64(time.Second)) {
-			for _, m := range metrics {
-				sendMetric(agent.Client, agent.Config.Addr, m, logger)
-			}
 			randValue := rand.Float64()
-			sendMetric(agent.Client, agent.Config.Addr, models.Metric{ID: "PollCount", MType: "counter", Delta: &agent.PollCount}, logger)
-			sendMetric(agent.Client, agent.Config.Addr, models.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue}, logger)
+			metrics = append(metrics, models.Metric{ID: "PollCount", MType: "counter", Delta: &agent.PollCount})
+			metrics = append(metrics, models.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue})
+			sendMetrics(agent.Client, agent.Config.Addr, metrics, logger)
 			lastReport = time.Now()
 		}
 		time.Sleep(time.Duration(agent.Config.PollInterval) * time.Second)
@@ -85,4 +83,37 @@ func sendMetric(client resty.Client, addr string, m models.Metric, logger *zap.L
 		zap.String("Host", req.URL),
 		zap.Int("StatusCode", resp.StatusCode()),
 		zap.String("Body", string(resp.Body())))
+}
+
+func sendMetrics(client resty.Client, addr string, m models.Metrics, logger *zap.Logger) {
+
+	metrics, err := easyjson.Marshal(m)
+	if err != nil {
+		logger.Error("cannot marshal metric batch")
+		return
+	}
+
+	gziped, err := compress.GzipCompress(metrics)
+
+	if err != nil {
+		logger.Error("Error compress metric batch", zap.Error(err))
+		return
+	}
+
+	req := client.R()
+	req.Method = "POST"
+	req.URL = fmt.Sprintf("http://%s/updates/", addr)
+	req.Body = gziped
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	resp, err := req.Send()
+	if err != nil {
+		logger.Error("Error sending metric batch")
+		return
+	}
+
+	logger.Info("Sended metrics", zap.Int("metric count", len(m)), zap.Int("server response", resp.StatusCode()))
+
 }

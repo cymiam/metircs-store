@@ -23,12 +23,11 @@ func NewAgent(cfg config.AgentConfig) *Agent {
 	}
 }
 
-func (a *Agent) PollRuntimeMetrics() []models.Metric {
+func (a *Agent) PollRuntimeMetrics() models.Metrics {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
 	metrics := []models.Metric{models.Metric{ID: "Alloc", Value: helper(float64(m.Alloc)), MType: "gauge"}}
-
 	metrics = append(metrics, models.Metric{ID: "BuckHashSys", Value: helper(float64(m.BuckHashSys)), MType: "gauge"})
 	metrics = append(metrics, models.Metric{ID: "Frees", Value: helper(float64(m.Frees)), MType: "gauge"})
 	metrics = append(metrics, models.Metric{ID: "GCCPUFraction", Value: helper(float64(m.GCCPUFraction)), MType: "gauge"})
