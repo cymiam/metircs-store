@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,7 +19,10 @@ func NewHealthService(pool *pgxpool.Pool) *HealthService {
 }
 
 func (service *HealthService) PingDB() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return service.pool.Ping(ctx)
+	if service.pool != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		return service.pool.Ping(ctx)
+	}
+	return fmt.Errorf("database does not exists")
 }
