@@ -26,11 +26,11 @@ func TestMetricService_UpdateCounter(t *testing.T) {
 			service := NewMetricService(MetricServiceParams{Store: repository.NewStore()})
 			one := int64(1)
 			service.store.SetMetric(t.Context(), models.Metric{ID: "test", MType: "counter", Delta: &one})
-			service.UpdateCounter(tt.metricName, tt.newValue)
+			service.UpdateCounter(t.Context(), tt.metricName, tt.newValue)
 
 			val := int64(3)
 			expected := models.Metric{ID: "test", MType: "counter", Delta: &val}
-			got, err := service.GetMetric("test", "counter")
+			got, err := service.GetMetric(t.Context(), "test", "counter")
 
 			assert.NoError(t, err)
 

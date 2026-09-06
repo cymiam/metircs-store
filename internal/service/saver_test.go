@@ -28,10 +28,10 @@ func TestMetricSaver_AppendMetricsToJson(t *testing.T) {
 		Logger: zap.NewNop(),
 	})
 
-	metricService.UpdateCounter("requests", 2)
-	metricService.UpdateCounter("requests", 3)
-	metricService.UpdateGauge("temperature", 10.5)
-	metricService.UpdateGauge("temperature", 12)
+	metricService.UpdateCounter(t.Context(), "requests", 2)
+	metricService.UpdateCounter(t.Context(), "requests", 3)
+	metricService.UpdateGauge(t.Context(), "temperature", 10.5)
+	metricService.UpdateGauge(t.Context(), "temperature", 12)
 
 	events := readMetricEvents(t, path)
 	require.Len(t, events, 5)
@@ -72,8 +72,8 @@ func TestMetricSaver_RestoreMetrics(t *testing.T) {
 		Logger: zap.NewNop(),
 	})
 
-	metricService.UpdateCounter("requests", 6)
-	metricService.UpdateGauge("temperature", 14)
+	metricService.UpdateCounter(t.Context(), "requests", 6)
+	metricService.UpdateGauge(t.Context(), "temperature", 14)
 
 	require.Equal(t, int64(12), store.Counters["requests"])
 	require.Equal(t, 14.0, store.Gauges["temperature"])

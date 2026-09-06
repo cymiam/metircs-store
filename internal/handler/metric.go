@@ -35,7 +35,7 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 
 	switch metricType {
 	case "counter":
-		err := handler.metricService.UpdateCounter(metricName, int64(metricValue))
+		err := handler.metricService.UpdateCounter(r.Context(), metricName, int64(metricValue))
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -48,7 +48,7 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 			zap.Int("MetricValue", int(metricValue)))
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
-		err := handler.metricService.UpdateGauge(metricName, metricValue)
+		err := handler.metricService.UpdateGauge(r.Context(), metricName, metricValue)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -75,7 +75,7 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 	}
 	switch metricType {
 	case "counter":
-		metric, err := handler.metricService.GetMetric(metricName, "counter")
+		metric, err := handler.metricService.GetMetric(r.Context(), metricName, "counter")
 		if err != nil {
 			handler.logger.Error("error updating metric", zap.String("metric", metric.String()), zap.Error(err))
 
@@ -91,7 +91,7 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(value))
 	case "gauge":
-		metric, err := handler.metricService.GetMetric(metricName, "gauge")
+		metric, err := handler.metricService.GetMetric(r.Context(), metricName, "gauge")
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -118,7 +118,7 @@ func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Re
 		<th>Value</th>
 	</tr>`
 
-	metrics, err := handler.metricService.GetAll()
+	metrics, err := handler.metricService.GetAll(r.Context())
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -166,7 +166,7 @@ func (handler *MetricHandler) HandleUpdateJSON(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		err := handler.metricService.UpdateCounter(metricName, *metric.Delta)
+		err := handler.metricService.UpdateCounter(r.Context(), metricName, *metric.Delta)
 
 		if err != nil {
 			handler.logger.Error("error updating metric", zap.String("metric", metric.String()), zap.Error(err))
@@ -185,7 +185,7 @@ func (handler *MetricHandler) HandleUpdateJSON(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		err := handler.metricService.UpdateGauge(metricName, *metric.Value)
+		err := handler.metricService.UpdateGauge(r.Context(), metricName, *metric.Value)
 
 		if err != nil {
 			handler.logger.Error("error updating metric", zap.String("metric", metric.String()), zap.Error(err))
@@ -224,7 +224,7 @@ func (handler *MetricHandler) HandleGetMetricJSON(w http.ResponseWriter, r *http
 
 	switch metricType {
 	case "counter":
-		counter, err := handler.metricService.GetMetric(metricName, "counter")
+		counter, err := handler.metricService.GetMetric(r.Context(), metricName, "counter")
 		if err != nil {
 			handler.logger.Error("error getting metric", zap.String("metric", metric.String()), zap.Error(err))
 
@@ -234,7 +234,7 @@ func (handler *MetricHandler) HandleGetMetricJSON(w http.ResponseWriter, r *http
 		metric.Delta = counter.Delta
 		easyjson.MarshalToHTTPResponseWriter(metric, w)
 	case "gauge":
-		gauge, err := handler.metricService.GetMetric(metricName, "gauge")
+		gauge, err := handler.metricService.GetMetric(r.Context(), metricName, "gauge")
 		if err != nil {
 			handler.logger.Error("error getting metric", zap.String("metric", metric.String()), zap.Error(err))
 

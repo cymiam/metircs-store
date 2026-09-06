@@ -31,9 +31,9 @@ func NewMetricService(config MetricServiceParams) *MetricService {
 	}
 }
 
-func (service *MetricService) UpdateCounter(name string, delta int64) error {
+func (service *MetricService) UpdateCounter(ctx context.Context, name string, delta int64) error {
 
-	err := service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "counter", Delta: &delta})
+	err := service.store.SetMetric(ctx, models.Metric{ID: name, MType: "counter", Delta: &delta})
 
 	if err != nil {
 		return fmt.Errorf("update counter: %w", err)
@@ -51,8 +51,8 @@ func (service *MetricService) UpdateCounter(name string, delta int64) error {
 	return nil
 }
 
-func (service *MetricService) UpdateGauge(name string, value float64) error {
-	err := service.store.SetMetric(context.TODO(), models.Metric{ID: name, MType: "gauge", Value: &value})
+func (service *MetricService) UpdateGauge(ctx context.Context, name string, value float64) error {
+	err := service.store.SetMetric(ctx, models.Metric{ID: name, MType: "gauge", Value: &value})
 
 	if err != nil {
 		return fmt.Errorf("update gauge: %w", err)
@@ -69,10 +69,23 @@ func (service *MetricService) UpdateGauge(name string, value float64) error {
 	return nil
 }
 
-func (service *MetricService) GetMetric(name, metricType string) (models.Metric, error) {
-	return service.store.GetMetric(context.TODO(), name, metricType)
+func (service *MetricService) GetMetric(ctx context.Context, name, metricType string) (models.Metric, error) {
+	return service.store.GetMetric(ctx, name, metricType)
 }
 
-func (service *MetricService) GetAll() ([]models.Metric, error) {
-	return service.store.GetAll(context.TODO())
+func (service *MetricService) GetAll(ctx context.Context) ([]models.Metric, error) {
+	return service.store.GetAll(ctx)
+}
+
+func (service *MetricSaver) ProcessBatch(ctx context.Context, metrics []models.Metric) error {
+
+	for _, metric := range metrics {
+		err := service.store.SetMetric(ctx, metric)
+
+		if err != nil {
+			return fmt.Errorf("error processing batch metric", err)
+		}
+	}
+
+	return nil
 }

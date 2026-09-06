@@ -146,7 +146,7 @@ func (m *MetricSaver) PopulateStore() error {
 			)
 		}
 
-		if err := newStore.SetMetric(context.TODO(), metric); err != nil {
+		if err := newStore.SetMetric(context.Background(), metric); err != nil {
 			m.logger.Error("error restore metric ", zap.Int("Number: ", metricNumber))
 			return err
 		}
