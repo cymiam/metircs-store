@@ -20,7 +20,7 @@ func parseServerFlags(serverConfig *ServerConfig) {
 	flag.StringVar(&serverConfig.FileStoragePath, "f", "metrics.json", "local metrics storage path")
 	flag.IntVar(&serverConfig.StoreInterval, "i", 300, "Metrics update offset in seconds")
 	flag.BoolVar(&serverConfig.Restore, "r", false, "Start server with old metrics")
-	flag.StringVar(&serverConfig.ConnectionString, "d", "postgres://postgres:postgres@localhost:5432/metrics?sslmode=disable", "Connection string to database")
+	flag.StringVar(&serverConfig.ConnectionString, "d", "", "Connection string to database")
 	flag.Parse()
 }
 

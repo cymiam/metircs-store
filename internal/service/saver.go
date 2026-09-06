@@ -141,7 +141,7 @@ func (m *MetricSaver) PopulateStore() error {
 
 		if metric.ID == "" {
 			return fmt.Errorf(
-				"Metric %d: empty metric ID",
+				"metric %d: empty metric ID",
 				metricNumber,
 			)
 		}

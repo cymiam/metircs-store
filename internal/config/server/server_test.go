@@ -20,7 +20,7 @@ func TestParseServerConfig(t *testing.T) {
 				StoreInterval:    300,
 				FileStoragePath:  "metrics.json",
 				Restore:          false,
-				ConnectionString: "postgres://postgres:postgres@localhost:5432/metrics?sslmode=disable",
+				ConnectionString: "",
 			},
 		},
 	}
