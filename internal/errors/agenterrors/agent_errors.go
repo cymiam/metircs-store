@@ -15,14 +15,14 @@ const (
 	Retriable
 )
 
-var ConnectionRefusedError = errors.New("connection refused")
+var ErrConnectionRefused = errors.New("connection refused")
 
 func Classify(err error) AgentErrorClassification {
 	if err == nil {
 		return NonRetriable
 	}
 
-	if errors.Is(err, ConnectionRefusedError) {
+	if errors.Is(err, ErrConnectionRefused) {
 		return Retriable
 	}
 
@@ -31,7 +31,7 @@ func Classify(err error) AgentErrorClassification {
 
 func ClassifyAgentError(err error) error {
 	if strings.Contains(err.Error(), "connection refused") {
-		return ConnectionRefusedError
+		return ErrConnectionRefused
 	}
 	return errors.New("unknown error")
 }

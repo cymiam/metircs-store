@@ -82,7 +82,7 @@ func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
 		return metrics, nil
 	}
 
-	return nil, fmt.Errorf("Operation stoped after %d, last err %w", p.maxRetry, lastErr)
+	return nil, fmt.Errorf("operation stoped after %d, last err %w", p.maxRetry, lastErr)
 }
 
 func (p *PostrgreStorage) GetMetric(ctx context.Context, name string, metricType string) (models.Metric, error) {
