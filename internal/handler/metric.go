@@ -273,5 +273,5 @@ func (handler *MetricHandler) ProcessBatchJSON(w http.ResponseWriter, r *http.Re
 
 	handler.logger.Info("process batch success", zap.Int("metric count", len(metrics)))
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 }
