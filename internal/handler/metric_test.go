@@ -501,3 +501,51 @@ func TestMetricHandler_GzipJson(t *testing.T) {
 	require.JSONEq(t, string(body), string(res2.Body()))
 	require.Equal(t, res2.Header().Get("Content-Encoding"), "gzip")
 }
+
+func TestMetricHandler_ProcessBatch(t *testing.T) {
+	server := httptest.NewServer(createTestServer())
+	defer server.Close()
+
+	counterDelta := int64(5)
+	gaugeValue := float64(3.14)
+	data := models.Metrics{
+		{
+			ID:    "CounterJson",
+			MType: "counter",
+			Delta: &counterDelta,
+		},
+		{
+			ID:    "GaugeJson",
+			MType: "gauge",
+			Value: &gaugeValue,
+		},
+		{
+			ID:    "CounterJson2",
+			MType: "counter",
+			Delta: &counterDelta,
+		},
+		{
+			ID:    "GaugeJson2",
+			MType: "gauge",
+			Value: &gaugeValue,
+		},
+	}
+
+	req := resty.New().R()
+	req.Method = "POST"
+	req.URL = server.URL + "/updates"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+
+	body, err := easyjson.Marshal(data)
+	require.NoError(t, err, "error Marshall request body")
+
+	gz, err := compress.GzipCompress(body)
+
+	require.NoError(t, err, "error Compress request body")
+
+	req.Body = gz
+	_, err = req.Send()
+
+	require.NoError(t, err, "error sending request")
+}

@@ -248,3 +248,30 @@ func (handler *MetricHandler) HandleGetMetricJSON(w http.ResponseWriter, r *http
 		http.Error(w, fmt.Sprintf("Неизвестный тип метрики: %s", metricType), http.StatusBadRequest)
 	}
 }
+
+func (handler *MetricHandler) ProcessBatchJSON(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Add("Content-type", "application/json; charset=utf-8")
+
+	var metrics models.Metrics
+
+	err := easyjson.UnmarshalFromReader(r.Body, &metrics)
+
+	if err != nil {
+		handler.logger.Error("error unmarhsall json", zap.Error(err))
+		http.Error(w, "Ошибка чтения тела", http.StatusBadRequest)
+		return
+	}
+
+	err = handler.metricService.ProcessBatch(r.Context(), metrics)
+
+	if err != nil {
+		handler.logger.Error("Error processing batch", zap.Error(err))
+		http.Error(w, "Ошибка обработки", http.StatusInternalServerError)
+		return
+	}
+
+	handler.logger.Info("process batch success", zap.Int("metric count", len(metrics)))
+
+	w.WriteHeader(http.StatusCreated)
+}

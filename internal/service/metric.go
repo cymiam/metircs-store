@@ -77,13 +77,13 @@ func (service *MetricService) GetAll(ctx context.Context) ([]models.Metric, erro
 	return service.store.GetAll(ctx)
 }
 
-func (service *MetricSaver) ProcessBatch(ctx context.Context, metrics []models.Metric) error {
+func (service *MetricService) ProcessBatch(ctx context.Context, metrics []models.Metric) error {
 
 	for _, metric := range metrics {
 		err := service.store.SetMetric(ctx, metric)
 
 		if err != nil {
-			return fmt.Errorf("error processing batch metric", err)
+			return fmt.Errorf("error processing batch metric: %w", err)
 		}
 	}
 
