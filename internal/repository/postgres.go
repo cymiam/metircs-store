@@ -3,14 +3,18 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/cymiam/metrics-store/internal/errors/pgerrors"
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostrgreStorage struct {
-	pool *pgxpool.Pool
+	pool          *pgxpool.Pool
+	maxRetry      int
+	retryInterval []time.Duration
 }
 
 type PostgreStorageParams struct {
@@ -19,50 +23,66 @@ type PostgreStorageParams struct {
 
 func NewPostgresStorage(params PostgreStorageParams) *PostrgreStorage {
 	return &PostrgreStorage{
-		pool: params.Pool,
+		pool:          params.Pool,
+		maxRetry:      3,
+		retryInterval: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 	}
 }
 
 func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
+
 	query, args, err := sq.Select("*").From("metrics.metrics").ToSql()
 
 	if err != nil {
 		return nil, fmt.Errorf("cannot create sql query: %w", err)
 	}
 
-	rows, err := p.pool.Query(ctx, query, args...)
-
-	if err != nil {
-		return nil, fmt.Errorf("cannot run sql query: %w", err)
-	}
-
-	defer rows.Close()
-
 	metrics := make([]models.Metric, 0)
 
-	for rows.Next() {
-		var m models.Metric
-		err := rows.Scan(
-			&m.ID,
-			&m.MType,
-			&m.Delta,
-			&m.Value,
-		)
+	var lastErr error
+
+	classifier := pgerrors.NewPostgresErrorClassifier()
+	for attempt := 0; attempt <= p.maxRetry; attempt++ {
+
+		rows, err := p.pool.Query(ctx, query, args...)
 
 		if err != nil {
-			return nil, fmt.Errorf("cannot scan metri: %w", err)
+			return nil, fmt.Errorf("cannot run sql query: %w", err)
 		}
 
-		metrics = append(metrics, m)
+		defer rows.Close()
+
+		for rows.Next() {
+			var m models.Metric
+			err := rows.Scan(
+				&m.ID,
+				&m.MType,
+				&m.Delta,
+				&m.Value,
+			)
+
+			if err != nil {
+				return nil, fmt.Errorf("cannot scan metri: %w", err)
+			}
+
+			metrics = append(metrics, m)
+		}
+
+		err = rows.Err()
+
+		if err != nil {
+			lastErr = err
+			classification := classifier.Classify(err)
+			if classification == pgerrors.NonRetriable {
+				return nil, fmt.Errorf("error in rows: %w", err)
+			}
+			time.Sleep(p.retryInterval[attempt])
+			continue
+		}
+		return metrics, nil
 	}
 
-	err = rows.Err()
-
-	if err != nil {
-		return nil, fmt.Errorf("error in rows: %w", err)
-	}
-
-	return metrics, nil
+	return nil, fmt.Errorf("Operation stoped after %d, last err %w", p.maxRetry, lastErr)
 }
 
 func (p *PostrgreStorage) GetMetric(ctx context.Context, name string, metricType string) (models.Metric, error) {
