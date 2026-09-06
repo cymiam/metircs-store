@@ -33,7 +33,6 @@ func main() {
 	handlerLog := baseLog.With(zap.String("layer", "handler"))
 	httpLog := baseLog.With(zap.String("layer", "http"))
 	saverLog := baseLog.With(zap.String("layer", "service"))
-	repoLog := baseLog.With(zap.String("layer", "repository"))
 
 	config, err := config.ParseServerConfig()
 
@@ -87,7 +86,7 @@ func main() {
 
 		baseLog.Info("Migratios run succsess")
 
-		metricRepository = repository.NewPostgresStorage(repository.PostgreStorageParams{Pool: pool, Logger: repoLog})
+		metricRepository = repository.NewPostgresStorage(repository.PostgreStorageParams{Pool: pool})
 	}
 
 	metricService := service.NewMetricService(service.MetricServiceParams{Store: metricRepository, Saver: saver, Logger: saverLog})

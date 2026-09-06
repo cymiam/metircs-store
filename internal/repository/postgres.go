@@ -7,23 +7,19 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"go.uber.org/zap"
 )
 
 type PostrgreStorage struct {
-	pool   *pgxpool.Pool
-	logger *zap.Logger
+	pool *pgxpool.Pool
 }
 
 type PostgreStorageParams struct {
-	Pool   *pgxpool.Pool
-	Logger *zap.Logger
+	Pool *pgxpool.Pool
 }
 
 func NewPostgresStorage(params PostgreStorageParams) *PostrgreStorage {
 	return &PostrgreStorage{
-		pool:   params.Pool,
-		logger: params.Logger,
+		pool: params.Pool,
 	}
 }
 
@@ -31,15 +27,13 @@ func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
 	query, args, err := sq.Select("*").From("metrics.metrics").ToSql()
 
 	if err != nil {
-		p.logger.Error("cannot create sql query", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("cannot create sql query: %w", err)
 	}
 
 	rows, err := p.pool.Query(ctx, query, args...)
 
 	if err != nil {
-		p.logger.Error("cannot run sql query", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("cannot run sql query: %w", err)
 	}
 
 	defer rows.Close()
@@ -56,8 +50,7 @@ func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
 		)
 
 		if err != nil {
-			p.logger.Error("cannot scan metric", zap.Error(err))
-			return nil, err
+			return nil, fmt.Errorf("cannot scan metri: %w", err)
 		}
 
 		metrics = append(metrics, m)
@@ -66,33 +59,26 @@ func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
 	err = rows.Err()
 
 	if err != nil {
-		p.logger.Error("error in rows", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("error in rows: %w", err)
 	}
 
 	return metrics, nil
 }
 
 func (p *PostrgreStorage) GetMetric(ctx context.Context, name string, metricType string) (models.Metric, error) {
-	query, args, err := sq.Select("*").From("metrics.metrics").ToSql()
+	query, args, err := sq.Select("id", "type", "delta", "value").
+		From("metrics.metrics").
+		Where(sq.Eq{"id": name, "type": metricType}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
 
 	if err != nil {
-		p.logger.Error("cannot create sql query", zap.Error(err))
-		return models.Metric{}, err
+		return models.Metric{}, fmt.Errorf("cannot create sql query: %w", err)
 	}
-
-	rows, err := p.pool.Query(ctx, query, args...)
-
-	if err != nil {
-		p.logger.Error("cannot run sql query", zap.Error(err))
-		return models.Metric{}, err
-	}
-
-	defer rows.Close()
 
 	metric := models.Metric{}
 
-	err = rows.Scan(
+	err = p.pool.QueryRow(ctx, query, args...).Scan(
 		&metric.ID,
 		&metric.MType,
 		&metric.Delta,
@@ -100,15 +86,7 @@ func (p *PostrgreStorage) GetMetric(ctx context.Context, name string, metricType
 	)
 
 	if err != nil {
-		p.logger.Error("cannot scan metric", zap.Error(err))
-		return models.Metric{}, err
-	}
-
-	err = rows.Err()
-
-	if err != nil {
-		p.logger.Error("error in rows", zap.Error(err))
-		return models.Metric{}, err
+		return models.Metric{}, fmt.Errorf("cannot scan metric: %w", err)
 	}
 
 	return metric, nil
@@ -145,7 +123,7 @@ func (p *PostrgreStorage) SetMetric(ctx context.Context, metric models.Metric) e
 	}
 
 	if _, err := p.pool.Exec(ctx, sql, args...); err != nil {
-		return fmt.Errorf("upsert %s: err%w, sql: %s", metric, err, sql)
+		return fmt.Errorf("upsert %s: %w, sql: %s", metric, err, sql)
 	}
 
 	return nil
