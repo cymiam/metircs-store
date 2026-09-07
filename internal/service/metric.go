@@ -79,13 +79,9 @@ func (service *MetricService) GetAll(ctx context.Context) ([]models.Metric, erro
 
 func (service *MetricService) ProcessBatch(ctx context.Context, metrics []models.Metric) error {
 
-	for _, metric := range metrics {
-		err := service.store.SetMetric(ctx, metric)
-
-		if err != nil {
-			return fmt.Errorf("error processing batch metric: %w", err)
-		}
+	err := service.store.SetMetrics(ctx, metrics)
+	if err != nil {
+		return fmt.Errorf("error processing batch metric: %w", err)
 	}
-
 	return nil
 }

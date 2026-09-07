@@ -149,3 +149,62 @@ func (p *PostrgreStorage) SetMetric(ctx context.Context, metric models.Metric) e
 	return nil
 
 }
+
+func (p *PostrgreStorage) SetMetrics(ctx context.Context, metrics []models.Metric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	tx, err := p.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+
+	// rollback transaction
+	defer func() {
+		rollbackCtx, cancel := context.WithTimeout(
+			context.Background(),
+			5*time.Second,
+		)
+		defer cancel()
+
+		_ = tx.Rollback(rollbackCtx)
+	}()
+
+	// Using raw query for simplicity
+	const query = `
+		INSERT INTO metrics.metrics AS current (id, type, delta, value)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id, type) DO UPDATE SET
+			delta = CASE
+				WHEN EXCLUDED.type = 'counter'
+					THEN current.delta + EXCLUDED.delta
+				ELSE current.delta
+			END,
+			value = CASE
+				WHEN EXCLUDED.type = 'gauge'
+					THEN EXCLUDED.value
+				ELSE current.value
+			END
+	`
+
+	for _, metric := range metrics {
+		_, err := tx.Exec(
+			ctx,
+			query,
+			metric.ID,
+			metric.MType,
+			metric.Delta,
+			metric.Value,
+		)
+		if err != nil {
+			return fmt.Errorf("update metric %q: %w", metric.ID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
+}

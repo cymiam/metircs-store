@@ -3,13 +3,15 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	models "github.com/cymiam/metrics-store/internal/model"
 )
 
 type MemStorage struct {
-	Gauges   map[string]float64 `json:"gauges"`
-	Counters map[string]int64   `json:"counters"`
+	mutex    sync.RWMutex
+	Gauges   map[string]float64
+	Counters map[string]int64
 }
 
 func NewStore() *MemStorage {
@@ -20,6 +22,9 @@ func NewStore() *MemStorage {
 }
 
 func (m *MemStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
+
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 	metrics := make([]models.Metric, 0, len(m.Gauges)+len(m.Counters))
 
 	for name, value := range m.Gauges {
@@ -48,6 +53,8 @@ func (m *MemStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
 
 func (m *MemStorage) GetMetric(ctx context.Context, name, metricType string) (models.Metric, error) {
 
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 	switch metricType {
 	case "gauge":
 		value, ok := m.Gauges[name]
@@ -75,6 +82,28 @@ func (m *MemStorage) GetMetric(ctx context.Context, name, metricType string) (mo
 }
 
 func (m *MemStorage) SetMetric(ctx context.Context, metric models.Metric) error {
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.setMetric(metric)
+
+}
+
+func (m *MemStorage) SetMetrics(ctx context.Context, metrics []models.Metric) error {
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	for _, metric := range metrics {
+		if err := m.setMetric(metric); err != nil {
+			return fmt.Errorf("set batch metric: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (m *MemStorage) setMetric(metric models.Metric) error {
 	switch metric.MType {
 	case "gauge":
 		if metric.Value == nil {

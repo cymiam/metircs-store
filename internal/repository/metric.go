@@ -8,6 +8,7 @@ import (
 
 type MetricRepository interface {
 	SetMetric(ctx context.Context, metirc models.Metric) error
+	SetMetrics(ctx context.Context, metrics []models.Metric) error
 	GetMetric(ctx context.Context, name, metricType string) (models.Metric, error)
 	GetAll(ctx context.Context) ([]models.Metric, error)
 }
