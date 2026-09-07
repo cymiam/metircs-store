@@ -37,13 +37,11 @@ func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
 		return nil, fmt.Errorf("cannot create sql query: %w", err)
 	}
 
-	metrics := make([]models.Metric, 0)
-
 	var lastErr error
 
 	classifier := pgerrors.NewPostgresErrorClassifier()
 	for attempt := 0; attempt <= p.maxRetry; attempt++ {
-
+		metrics := make([]models.Metric, 0)
 		rows, err := p.pool.Query(ctx, query, args...)
 
 		if err != nil {
@@ -70,16 +68,20 @@ func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
 
 		err = rows.Err()
 
-		if err != nil {
-			lastErr = err
-			classification := classifier.Classify(err)
-			if classification == pgerrors.NonRetriable {
-				return nil, fmt.Errorf("error in rows: %w", err)
-			}
-			time.Sleep(p.retryInterval[attempt])
-			continue
+		if err == nil {
+			return metrics, nil
 		}
-		return metrics, nil
+
+		lastErr = err
+		classification := classifier.Classify(err)
+		if classification == pgerrors.NonRetriable {
+			return nil, fmt.Errorf("error in rows: %w", err)
+		}
+
+		if attempt == len(p.retryInterval) {
+			return nil, fmt.Errorf("couldnt get metric, all retries exhausted, %w", lastErr)
+		}
+		time.Sleep(p.retryInterval[attempt])
 	}
 
 	return nil, fmt.Errorf("operation stoped after %d, last err %w", p.maxRetry, lastErr)
