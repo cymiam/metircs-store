@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"math/rand/v2"
@@ -43,7 +46,7 @@ func main() {
 			metrics = append(metrics, models.Metric{ID: "PollCount", MType: "counter", Delta: &agent.PollCount})
 			metrics = append(metrics, models.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue})
 			for attempt := 0; attempt <= 3; attempt++ {
-				err := sendMetrics(agent.Client, agent.Config.Addr, metrics, logger)
+				err := sendMetrics(agent.Client, agent.Config.Addr, metrics, logger, agentConfig.Key)
 
 				if err == nil {
 					lastReport = time.Now()
@@ -70,7 +73,7 @@ func main() {
 
 }
 
-func sendMetrics(client resty.Client, addr string, m models.Metrics, logger *zap.Logger) error {
+func sendMetrics(client resty.Client, addr string, m models.Metrics, logger *zap.Logger, key string) error {
 
 	metrics, err := easyjson.Marshal(m)
 	if err != nil {
@@ -86,17 +89,24 @@ func sendMetrics(client resty.Client, addr string, m models.Metrics, logger *zap
 	req := client.R()
 	req.Method = "POST"
 	req.URL = fmt.Sprintf("http://%s/updates/", addr)
-	req.Body = gziped
+	req.SetBody(gziped)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Accept-Encoding", "gzip")
+	if key != "" {
+		h := hmac.New(sha256.New, []byte(key))
+		h.Write(gziped)
 
+		sum := h.Sum(nil)
+		hash := hex.EncodeToString(sum)
+		req.Header.Set("HashSHA256", hash)
+	}
 	resp, err := req.Send()
 	if err != nil {
 		err = agenterrors.ClassifyAgentError(err)
 		return err
 	}
 
-	logger.Info("Sended metrics", zap.Int("metric count", len(m)), zap.Int("server response", resp.StatusCode()))
+	logger.Info("Sended metrics", zap.Int("metric count", len(m)), zap.Int("server response", resp.StatusCode()), zap.String("hash", req.Header.Get("HashSHA256")))
 	return nil
 }

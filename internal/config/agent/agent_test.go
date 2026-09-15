@@ -18,6 +18,7 @@ func TestParseAgentConfig(t *testing.T) {
 				Addr:           "localhost:8080",
 				ReportInterval: 10,
 				PollInterval:   2,
+				Key:            "",
 			},
 		},
 	}
