@@ -7,6 +7,7 @@ import (
 
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/service"
+	"github.com/cymiam/metrics-store/pkg/hmac"
 	"github.com/go-chi/chi/v5"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
@@ -15,12 +16,14 @@ import (
 type MetricHandler struct {
 	metricService *service.MetricService
 	logger        *zap.Logger
+	key           string
 }
 
-func NewMetricHandler(metricService *service.MetricService, logger *zap.Logger) *MetricHandler {
+func NewMetricHandler(metricService *service.MetricService, logger *zap.Logger, key string) *MetricHandler {
 	return &MetricHandler{
 		metricService: metricService,
 		logger:        logger,
+		key:           key,
 	}
 }
 
@@ -88,6 +91,10 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		if handler.key != "" {
+			hash := hmac.CalculateSha256Sum([]byte(value), handler.key)
+			w.Header().Add("HashSHA256", hash)
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(value))
 	case "gauge":
@@ -101,6 +108,10 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
+		}
+		if handler.key != "" {
+			hash := hmac.CalculateSha256Sum([]byte(value), handler.key)
+			w.Header().Add("HashSHA256", hash)
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(value))
@@ -136,7 +147,10 @@ func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Re
 		body += fmt.Sprintf("<td>%s</td>", value)
 		body += "</tr>"
 	}
-
+	if handler.key != "" {
+		hash := hmac.CalculateSha256Sum([]byte(body), handler.key)
+		w.Header().Add("HashSHA256", hash)
+	}
 	body += "</table>"
 	w.Write([]byte(body))
 }
@@ -232,7 +246,16 @@ func (handler *MetricHandler) HandleGetMetricJSON(w http.ResponseWriter, r *http
 			return
 		}
 		metric.Delta = counter.Delta
+		if handler.key != "" {
+			js, err := easyjson.Marshal(metric)
+			if err != nil {
+				handler.logger.Error("Error marshal", zap.Error(err))
+			}
+			hash := hmac.CalculateSha256Sum(js, handler.key)
+			w.Header().Add("HashSHA256", hash)
+		}
 		easyjson.MarshalToHTTPResponseWriter(metric, w)
+
 	case "gauge":
 		gauge, err := handler.metricService.GetMetric(r.Context(), metricName, "gauge")
 		if err != nil {
@@ -242,6 +265,14 @@ func (handler *MetricHandler) HandleGetMetricJSON(w http.ResponseWriter, r *http
 			return
 		}
 		metric.Value = gauge.Value
+		if handler.key != "" {
+			js, err := easyjson.Marshal(metric)
+			if err != nil {
+				handler.logger.Error("Error marshal", zap.Error(err))
+			}
+			hash := hmac.CalculateSha256Sum(js, handler.key)
+			w.Header().Add("HashSHA256", hash)
+		}
 		easyjson.MarshalToHTTPResponseWriter(metric, w)
 	default:
 		w.Header().Set("Content-type", "text/plain; charset=utf-8")
