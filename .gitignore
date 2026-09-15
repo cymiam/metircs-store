@@ -27,3 +27,9 @@ vendor/
 
 # data
 metrics.json
+
+# local autotests binaries
+tests/**
+Makefile
+
+.DS_Store

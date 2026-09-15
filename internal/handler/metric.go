@@ -5,11 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	m "github.com/cymiam/metrics-store/internal/middleware"
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/service"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
 )
@@ -37,14 +35,25 @@ func (handler *MetricHandler) HandleUpdate(w http.ResponseWriter, r *http.Reques
 
 	switch metricType {
 	case "counter":
-		handler.metricService.UpdateCounter(metricName, int64(metricValue))
+		err := handler.metricService.UpdateCounter(r.Context(), metricName, int64(metricValue))
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
 			zap.Int("MetricValue", int(metricValue)))
 		w.WriteHeader(http.StatusOK)
 	case "gauge":
-		handler.metricService.UpdateGauge(metricName, metricValue)
+		err := handler.metricService.UpdateGauge(r.Context(), metricName, metricValue)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
@@ -66,22 +75,35 @@ func (handler *MetricHandler) HandleGetMetric(w http.ResponseWriter, r *http.Req
 	}
 	switch metricType {
 	case "counter":
-		value, ok := handler.metricService.GetCounter(metricName)
-		if !ok {
+		metric, err := handler.metricService.GetMetric(r.Context(), metricName, "counter")
+		if err != nil {
+			handler.logger.Error("error updating metric", zap.String("metric", metric.String()), zap.Error(err))
+
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		last := value[len(value)-1]
+
+		value, err := metric.MetricValue()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%d", last)))
+		w.Write([]byte(value))
 	case "gauge":
-		value, ok := handler.metricService.GetGauge(metricName)
-		if !ok {
+		metric, err := handler.metricService.GetMetric(r.Context(), metricName, "gauge")
+		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
+		value, err := metric.MetricValue()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("%v", value)))
+		w.Write([]byte(value))
 	default:
 		http.Error(w, fmt.Sprintf("Неизвестный тип метрики: %s", metricType), http.StatusBadRequest)
 	}
@@ -95,25 +117,33 @@ func (handler *MetricHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Re
 		<th>Name</th>
 		<th>Value</th>
 	</tr>`
-	for k, v := range handler.metricService.GetCounters() {
+
+	metrics, err := handler.metricService.GetAll(r.Context())
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	for _, metric := range metrics {
+
+		value, err := metric.MetricValue()
+		if err != nil {
+			handler.logger.Error("html table", zap.Error(err))
+		}
 		body += "<tr>"
-		body += fmt.Sprintf("<td>%s</td>", k)
-		body += fmt.Sprintf("<td>%d</td>", v)
+		body += fmt.Sprintf("<td>%s</td>", metric.ID)
+		body += fmt.Sprintf("<td>%s</td>", value)
 		body += "</tr>"
 	}
-	for k, v := range handler.metricService.GetGauges() {
-		body += "<tr>"
-		body += fmt.Sprintf("<td>%s</td>", k)
-		body += fmt.Sprintf("<td>%f</td>", v)
-		body += "</tr>"
-	}
+
 	body += "</table>"
 	w.Write([]byte(body))
 }
 
-func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Request) {
+func (handler *MetricHandler) HandleUpdateJSON(w http.ResponseWriter, r *http.Request) {
 
-	metric := models.Metrics{}
+	metric := models.Metric{}
 	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
 		handler.logger.Error("Error unmarhsalling json", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
@@ -136,7 +166,13 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		handler.metricService.UpdateCounter(metricName, *metric.Delta)
+		err := handler.metricService.UpdateCounter(r.Context(), metricName, *metric.Delta)
+
+		if err != nil {
+			handler.logger.Error("error updating metric", zap.String("metric", metric.String()), zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
@@ -148,7 +184,14 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		handler.metricService.UpdateGauge(metricName, *metric.Value)
+
+		err := handler.metricService.UpdateGauge(r.Context(), metricName, *metric.Value)
+
+		if err != nil {
+			handler.logger.Error("error updating metric", zap.String("metric", metric.String()), zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		handler.logger.Info("Update metric",
 			zap.String("MetricName", metricName),
 			zap.String("MetricType", metricType),
@@ -162,9 +205,9 @@ func (handler *MetricHandler) HandleUpdateJson(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http.Request) {
+func (handler *MetricHandler) HandleGetMetricJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-type", "application/json; charset=utf-8")
-	metric := models.Metrics{}
+	metric := models.Metric{}
 	if err := easyjson.UnmarshalFromReader(r.Body, &metric); err != nil {
 		handler.logger.Error("Error unmarhsalling json", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
@@ -181,21 +224,24 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 
 	switch metricType {
 	case "counter":
-		value, ok := handler.metricService.GetCounter(metricName)
-		if !ok {
+		counter, err := handler.metricService.GetMetric(r.Context(), metricName, "counter")
+		if err != nil {
+			handler.logger.Error("error getting metric", zap.String("metric", metric.String()), zap.Error(err))
+
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		last := value[len(value)-1]
-		metric.Delta = &last
+		metric.Delta = counter.Delta
 		easyjson.MarshalToHTTPResponseWriter(metric, w)
 	case "gauge":
-		value, ok := handler.metricService.GetGauge(metricName)
-		if !ok {
+		gauge, err := handler.metricService.GetMetric(r.Context(), metricName, "gauge")
+		if err != nil {
+			handler.logger.Error("error getting metric", zap.String("metric", metric.String()), zap.Error(err))
+
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		metric.Value = &value
+		metric.Value = gauge.Value
 		easyjson.MarshalToHTTPResponseWriter(metric, w)
 	default:
 		w.Header().Set("Content-type", "text/plain; charset=utf-8")
@@ -203,25 +249,29 @@ func (handler *MetricHandler) HandleGetMetricJson(w http.ResponseWriter, r *http
 	}
 }
 
-func NewMetricRouter(metricHandler *MetricHandler, logger *zap.Logger) chi.Router {
-	r := chi.NewRouter()
+func (handler *MetricHandler) ProcessBatchJSON(w http.ResponseWriter, r *http.Request) {
 
-	r.Use(middleware.Compress(5, "application/json", "text/html"))
-	r.Use(middleware.AllowContentEncoding("gzip"))
-	r.Use(m.GzipDecompressMidlleware)
-	r.Use(m.RequestLoggerMiddleware(logger))
+	w.Header().Add("Content-type", "application/json; charset=utf-8")
 
-	r.Route("/update", func(r chi.Router) {
-		r.Post("/", metricHandler.HandleUpdateJson)
-		r.Post("/{metric_type}/{metric_name}/{metric_value}", metricHandler.HandleUpdate)
-	})
-	r.Route("/value", func(r chi.Router) {
-		r.Post("/", metricHandler.HandleGetMetricJson)
-		r.Get("/{metric_type}/{metric_name}", metricHandler.HandleGetMetric)
-	})
-	r.Route("/", func(r chi.Router) {
-		r.Get("/", metricHandler.HandleGetMetrics)
-	})
+	var metrics models.Metrics
 
-	return r
+	err := easyjson.UnmarshalFromReader(r.Body, &metrics)
+
+	if err != nil {
+		handler.logger.Error("error unmarhsall json", zap.Error(err))
+		http.Error(w, "Ошибка чтения тела", http.StatusBadRequest)
+		return
+	}
+
+	err = handler.metricService.ProcessBatch(r.Context(), metrics)
+
+	if err != nil {
+		handler.logger.Error("Error processing batch", zap.Error(err))
+		http.Error(w, "Ошибка обработки", http.StatusInternalServerError)
+		return
+	}
+
+	handler.logger.Info("process batch success", zap.Int("metric count", len(metrics)))
+
+	w.WriteHeader(http.StatusOK)
 }

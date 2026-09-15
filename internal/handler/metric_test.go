@@ -29,8 +29,8 @@ func createTestData(t *testing.T, server *httptest.Server,
 	assert.NoError(t, err, "error making HTTP request")
 }
 
-func createTestDataJson(t *testing.T, server *httptest.Server, path string,
-	data models.Metrics) {
+func createTestDataJSON(t *testing.T, server *httptest.Server, path string,
+	data models.Metric) {
 
 	req := resty.New().R()
 	req.Method = "POST"
@@ -50,7 +50,7 @@ func createTestServer() chi.Router {
 	service := service.NewMetricService(service.MetricServiceParams{Store: repository, Logger: zap.NewNop()})
 	metricHandler := handler.NewMetricHandler(service, zap.NewNop())
 
-	r := handler.NewMetricRouter(metricHandler, zap.NewNop())
+	r := handler.NewRouter(handler.MainRouterParams{MetricHandler: metricHandler, Logger: zap.NewNop()})
 	return r
 }
 
@@ -152,7 +152,7 @@ func TestMetricHandler_UpdateJson(t *testing.T) {
 	tests := []struct {
 		name        string
 		url         string
-		body        models.Metrics
+		body        models.Metric
 		contentType string
 		method      string
 		want        want
@@ -161,7 +161,7 @@ func TestMetricHandler_UpdateJson(t *testing.T) {
 			name:        "POST Counter JSON",
 			url:         "/update",
 			contentType: "application/json",
-			body: models.Metrics{
+			body: models.Metric{
 				ID:    "CounterJson",
 				MType: "counter",
 				Delta: &jsonCounterValue,
@@ -175,7 +175,7 @@ func TestMetricHandler_UpdateJson(t *testing.T) {
 			name:        "POST Gauge JSON",
 			url:         "/update",
 			contentType: "application/json",
-			body: models.Metrics{
+			body: models.Metric{
 				ID:    "GaugeJson",
 				MType: "gauge",
 				Value: &jsonGaugeValue,
@@ -189,7 +189,7 @@ func TestMetricHandler_UpdateJson(t *testing.T) {
 			name:        "POST Unknown metric type JSON",
 			url:         "/update",
 			contentType: "application/json",
-			body: models.Metrics{
+			body: models.Metric{
 				ID:    "CounterJson",
 				MType: "timeseries",
 			},
@@ -203,7 +203,7 @@ func TestMetricHandler_UpdateJson(t *testing.T) {
 			name:        "POST No metric name JSON",
 			url:         "/update",
 			contentType: "application/json",
-			body: models.Metrics{
+			body: models.Metric{
 				MType: "counter",
 				Delta: &jsonCounterValue,
 			},
@@ -334,13 +334,13 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 	jsonGaugeValue := 3.1415
 	jsonCounterValue := int64(5)
 
-	createTestDataJson(t, server, "/update", models.Metrics{
+	createTestDataJSON(t, server, "/update", models.Metric{
 		MType: "counter",
 		ID:    "testCounterJson",
 		Delta: &jsonCounterValue,
 	})
 
-	createTestDataJson(t, server, "/update", models.Metrics{
+	createTestDataJSON(t, server, "/update", models.Metric{
 		MType: "gauge",
 		ID:    "testGaugeJson",
 		Value: &jsonGaugeValue,
@@ -355,7 +355,7 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 	tests := []struct {
 		name        string
 		url         string
-		body        models.Metrics
+		body        models.Metric
 		contentType string
 		method      string
 		want        want
@@ -364,7 +364,7 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 		url:         "/value",
 		method:      "POST",
 		contentType: "application/json",
-		body: models.Metrics{
+		body: models.Metric{
 			ID:    "testCounterJson",
 			MType: "counter",
 		},
@@ -382,7 +382,7 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 			url:         "/value",
 			method:      "POST",
 			contentType: "application/json",
-			body: models.Metrics{
+			body: models.Metric{
 				ID:    "testGaugeJson",
 				MType: "gauge",
 			},
@@ -400,7 +400,7 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 			url:         "/value",
 			method:      "POST",
 			contentType: "application/json",
-			body: models.Metrics{
+			body: models.Metric{
 				ID:    "unknownCounter",
 				MType: "counter",
 			},
@@ -414,7 +414,7 @@ func TestMetricHandler_ValueJson(t *testing.T) {
 			url:         "/value",
 			method:      "POST",
 			contentType: "application/json",
-			body: models.Metrics{
+			body: models.Metric{
 				ID:    "unknownGauge",
 				MType: "counter",
 			},
@@ -459,7 +459,7 @@ func TestMetricHandler_GzipJson(t *testing.T) {
 	defer server.Close()
 
 	jsonCounterValue := int64(5)
-	data := models.Metrics{
+	data := models.Metric{
 		ID:    "CounterJson",
 		MType: "counter",
 		Delta: &jsonCounterValue}
@@ -480,7 +480,9 @@ func TestMetricHandler_GzipJson(t *testing.T) {
 	req.Body = gz
 	_, err = req.Send()
 
-	data2 := models.Metrics{
+	require.NoError(t, err, "error sending request")
+
+	data2 := models.Metric{
 		ID:    "CounterJson",
 		MType: "counter"}
 
@@ -498,4 +500,52 @@ func TestMetricHandler_GzipJson(t *testing.T) {
 
 	require.JSONEq(t, string(body), string(res2.Body()))
 	require.Equal(t, res2.Header().Get("Content-Encoding"), "gzip")
+}
+
+func TestMetricHandler_ProcessBatch(t *testing.T) {
+	server := httptest.NewServer(createTestServer())
+	defer server.Close()
+
+	counterDelta := int64(5)
+	gaugeValue := float64(3.14)
+	data := models.Metrics{
+		{
+			ID:    "CounterJson",
+			MType: "counter",
+			Delta: &counterDelta,
+		},
+		{
+			ID:    "GaugeJson",
+			MType: "gauge",
+			Value: &gaugeValue,
+		},
+		{
+			ID:    "CounterJson2",
+			MType: "counter",
+			Delta: &counterDelta,
+		},
+		{
+			ID:    "GaugeJson2",
+			MType: "gauge",
+			Value: &gaugeValue,
+		},
+	}
+
+	req := resty.New().R()
+	req.Method = "POST"
+	req.URL = server.URL + "/updates"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+
+	body, err := easyjson.Marshal(data)
+	require.NoError(t, err, "error Marshall request body")
+
+	gz, err := compress.GzipCompress(body)
+
+	require.NoError(t, err, "error Compress request body")
+
+	req.Body = gz
+	_, err = req.Send()
+
+	require.NoError(t, err, "error sending request")
 }

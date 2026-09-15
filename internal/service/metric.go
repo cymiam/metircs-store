@@ -1,8 +1,12 @@
 package service
 
 import (
+	"context"
+	"fmt"
+
 	models "github.com/cymiam/metrics-store/internal/model"
 	"github.com/cymiam/metrics-store/internal/repository"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -16,6 +20,7 @@ type MetricServiceParams struct {
 	Store  repository.MetricRepository
 	Saver  *MetricSaver
 	Logger *zap.Logger
+	DB     *pgx.Conn
 }
 
 func NewMetricService(config MetricServiceParams) *MetricService {
@@ -26,48 +31,57 @@ func NewMetricService(config MetricServiceParams) *MetricService {
 	}
 }
 
-func (service *MetricService) UpdateCounter(name string, newValue int64) {
-	value, ok := service.store.GetCounter(name)
-	delta := newValue
+func (service *MetricService) UpdateCounter(ctx context.Context, name string, delta int64) error {
 
-	if ok && len(value) > 0 {
-		newValue += value[len(value)-1]
+	err := service.store.SetMetric(ctx, models.Metric{ID: name, MType: "counter", Delta: &delta})
+
+	if err != nil {
+		return fmt.Errorf("update counter: %w", err)
 	}
-	service.store.SetCounter(name, newValue)
+
 	if service.saver != nil {
-		metric := models.Metrics{
+		metric := models.Metric{
 			ID:    name,
 			MType: "counter",
 			Delta: &delta,
 		}
 		service.saver.OnMetricChanged(metric)
 	}
+
+	return nil
 }
 
-func (service *MetricService) UpdateGauge(name string, value float64) {
-	service.store.SetGauge(name, value)
+func (service *MetricService) UpdateGauge(ctx context.Context, name string, value float64) error {
+	err := service.store.SetMetric(ctx, models.Metric{ID: name, MType: "gauge", Value: &value})
+
+	if err != nil {
+		return fmt.Errorf("update gauge: %w", err)
+	}
 	if service.saver != nil {
-		metric := models.Metrics{
+		metric := models.Metric{
 			ID:    name,
 			MType: "gauge",
 			Value: &value,
 		}
 		service.saver.OnMetricChanged(metric)
 	}
+
+	return nil
 }
 
-func (service *MetricService) GetCounter(name string) ([]int64, bool) {
-	return service.store.GetCounter(name)
+func (service *MetricService) GetMetric(ctx context.Context, name, metricType string) (models.Metric, error) {
+	return service.store.GetMetric(ctx, name, metricType)
 }
 
-func (service *MetricService) GetGauge(name string) (float64, bool) {
-	return service.store.GetGauge(name)
+func (service *MetricService) GetAll(ctx context.Context) ([]models.Metric, error) {
+	return service.store.GetAll(ctx)
 }
 
-func (service *MetricService) GetCounters() map[string][]int64 {
-	return service.store.GetCounters()
-}
+func (service *MetricService) ProcessBatch(ctx context.Context, metrics []models.Metric) error {
 
-func (service *MetricService) GetGauges() map[string]float64 {
-	return service.store.GetGauges()
+	err := service.store.SetMetrics(ctx, metrics)
+	if err != nil {
+		return fmt.Errorf("error processing batch metric: %w", err)
+	}
+	return nil
 }

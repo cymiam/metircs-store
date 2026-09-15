@@ -1,0 +1,212 @@
+package repository
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/cymiam/metrics-store/internal/errors/pgerrors"
+	models "github.com/cymiam/metrics-store/internal/model"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type PostrgreStorage struct {
+	pool          *pgxpool.Pool
+	maxRetry      int
+	retryInterval []time.Duration
+}
+
+type PostgreStorageParams struct {
+	Pool *pgxpool.Pool
+}
+
+func NewPostgresStorage(params PostgreStorageParams) *PostrgreStorage {
+	return &PostrgreStorage{
+		pool:          params.Pool,
+		maxRetry:      3,
+		retryInterval: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
+	}
+}
+
+func (p *PostrgreStorage) GetAll(ctx context.Context) ([]models.Metric, error) {
+
+	query, args, err := sq.Select("*").From("metrics.metrics").ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot create sql query: %w", err)
+	}
+
+	var lastErr error
+
+	classifier := pgerrors.NewPostgresErrorClassifier()
+	for attempt := 0; attempt <= p.maxRetry; attempt++ {
+		metrics := make([]models.Metric, 0)
+		rows, err := p.pool.Query(ctx, query, args...)
+
+		if err != nil {
+			return nil, fmt.Errorf("cannot run sql query: %w", err)
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var m models.Metric
+			err := rows.Scan(
+				&m.ID,
+				&m.MType,
+				&m.Delta,
+				&m.Value,
+			)
+
+			if err != nil {
+				return nil, fmt.Errorf("cannot scan metri: %w", err)
+			}
+
+			metrics = append(metrics, m)
+		}
+
+		err = rows.Err()
+
+		if err == nil {
+			return metrics, nil
+		}
+
+		lastErr = err
+		classification := classifier.Classify(err)
+		if classification == pgerrors.NonRetriable {
+			return nil, fmt.Errorf("error in rows: %w", err)
+		}
+
+		if attempt == len(p.retryInterval) {
+			return nil, fmt.Errorf("couldnt get metric, all retries exhausted, %w", lastErr)
+		}
+		time.Sleep(p.retryInterval[attempt])
+	}
+
+	return nil, fmt.Errorf("operation stoped after %d, last err %w", p.maxRetry, lastErr)
+}
+
+func (p *PostrgreStorage) GetMetric(ctx context.Context, name string, metricType string) (models.Metric, error) {
+	query, args, err := sq.Select("id", "type", "delta", "value").
+		From("metrics.metrics").
+		Where(sq.Eq{"id": name, "type": metricType}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
+	if err != nil {
+		return models.Metric{}, fmt.Errorf("cannot create sql query: %w", err)
+	}
+
+	metric := models.Metric{}
+
+	err = p.pool.QueryRow(ctx, query, args...).Scan(
+		&metric.ID,
+		&metric.MType,
+		&metric.Delta,
+		&metric.Value,
+	)
+
+	if err != nil {
+		return models.Metric{}, fmt.Errorf("cannot scan metric: %w", err)
+	}
+
+	return metric, nil
+}
+
+func (p *PostrgreStorage) SetMetric(ctx context.Context, metric models.Metric) error {
+
+	var builder sq.InsertBuilder
+
+	switch metric.MType {
+	case "counter":
+		// Upsert metric into table metrics (if metric exists, update its delta)
+		builder = sq.Insert("metrics.metrics AS current").
+			PlaceholderFormat(sq.Dollar).
+			Columns("id", "type", "delta").
+			Values(metric.ID, metric.MType, metric.Delta).
+			Suffix(`ON CONFLICT (id, type)
+				    DO UPDATE SET delta = current.delta + EXCLUDED.delta`)
+	case "gauge":
+		// Upsert metric into table metrics (if metric exists, update its value)
+		builder = sq.Insert("metrics.metrics").
+			PlaceholderFormat(sq.Dollar).
+			Columns("id", "type", "value").
+			Values(metric.ID, metric.MType, metric.Value).
+			Suffix(`ON CONFLICT (id, type)
+				    DO UPDATE SET value = EXCLUDED.value`)
+	default:
+		return fmt.Errorf("unknown metric type: %s", metric.MType)
+	}
+	sql, args, err := builder.ToSql()
+
+	if err != nil {
+		return fmt.Errorf("build upsert metric query: %w", err)
+	}
+
+	if _, err := p.pool.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("upsert %s: %w, sql: %s", metric, err, sql)
+	}
+
+	return nil
+
+}
+
+func (p *PostrgreStorage) SetMetrics(ctx context.Context, metrics []models.Metric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	tx, err := p.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+
+	// rollback transaction
+	defer func() {
+		rollbackCtx, cancel := context.WithTimeout(
+			context.Background(),
+			5*time.Second,
+		)
+		defer cancel()
+
+		_ = tx.Rollback(rollbackCtx)
+	}()
+
+	// Using raw query for simplicity
+	const query = `
+		INSERT INTO metrics.metrics AS current (id, type, delta, value)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id, type) DO UPDATE SET
+			delta = CASE
+				WHEN EXCLUDED.type = 'counter'
+					THEN current.delta + EXCLUDED.delta
+				ELSE current.delta
+			END,
+			value = CASE
+				WHEN EXCLUDED.type = 'gauge'
+					THEN EXCLUDED.value
+				ELSE current.value
+			END
+	`
+
+	for _, metric := range metrics {
+		_, err := tx.Exec(
+			ctx,
+			query,
+			metric.ID,
+			metric.MType,
+			metric.Delta,
+			metric.Value,
+		)
+		if err != nil {
+			return fmt.Errorf("update metric %q: %w", metric.ID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
+}
