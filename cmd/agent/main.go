@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"math/rand/v2"
@@ -15,6 +12,7 @@ import (
 	"github.com/cymiam/metrics-store/internal/logger"
 	models "github.com/cymiam/metrics-store/internal/model"
 	compress "github.com/cymiam/metrics-store/pkg/compress"
+	"github.com/cymiam/metrics-store/pkg/hmac"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
@@ -94,12 +92,7 @@ func sendMetrics(client resty.Client, addr string, m models.Metrics, logger *zap
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Accept-Encoding", "gzip")
 	if key != "" {
-		h := hmac.New(sha256.New, []byte(key))
-		h.Write(gziped)
-
-		sum := h.Sum(nil)
-		hash := hex.EncodeToString(sum)
-		req.Header.Set("HashSHA256", hash)
+		req.Header.Set("HashSHA256", hmac.CalculateSha256Sum(gziped, key))
 	}
 	resp, err := req.Send()
 	if err != nil {
