@@ -34,5 +34,5 @@ func ClassifyAgentError(err error) error {
 	if strings.Contains(err.Error(), "connection refused") {
 		return ErrConnectionRefused
 	}
-	return fmt.Errorf("unknown error", err)
+	return fmt.Errorf("unknown error %x", err)
 }

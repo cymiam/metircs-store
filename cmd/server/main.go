@@ -94,7 +94,7 @@ func main() {
 	}
 
 	metricService := service.NewMetricService(service.MetricServiceParams{Store: metricRepository, Saver: saver, Logger: saverLog})
-	metricHandler := handler.NewMetricHandler(metricService, handlerLog)
+	metricHandler := handler.NewMetricHandler(metricService, handlerLog, config.Key)
 
 	healthService := service.NewHealthService(pool)
 	healthHadler := handler.NewHealthHandler(handler.HealthHandlerParams{HealthService: healthService, Logger: httpLog})
