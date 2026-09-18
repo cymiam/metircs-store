@@ -5,10 +5,11 @@ import (
 
 	config "github.com/cymiam/metrics-store/internal/config/agent"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestAgent_PollRuntimeMetrics(t *testing.T) {
-	a := NewAgent(config.AgentConfig{
+	a := NewAgent(zap.NewNop(), config.AgentConfig{
 		Addr:           "localhost:8080",
 		PollInterval:   2,
 		ReportInterval: 10,
@@ -19,7 +20,7 @@ func TestAgent_PollRuntimeMetrics(t *testing.T) {
 
 func TestAgent_PollRuntimeMetricsPresent(t *testing.T) {
 
-	a := NewAgent(config.AgentConfig{
+	a := NewAgent(zap.NewNop(), config.AgentConfig{
 		Addr:           "localhost:8080",
 		PollInterval:   2,
 		ReportInterval: 10,
@@ -78,7 +79,7 @@ func TestAgent_PollRuntimeMetricsPresent(t *testing.T) {
 
 func TestAgent_UpdatePollCount(t *testing.T) {
 
-	a := NewAgent(config.AgentConfig{
+	a := NewAgent(zap.NewNop(), config.AgentConfig{
 		Addr:           "localhost:8080",
 		PollInterval:   2,
 		ReportInterval: 10,

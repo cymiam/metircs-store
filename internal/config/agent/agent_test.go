@@ -19,6 +19,7 @@ func TestParseAgentConfig(t *testing.T) {
 				ReportInterval: 10,
 				PollInterval:   2,
 				Key:            "",
+				RateLimit:      1,
 			},
 		},
 	}
