@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/shirou/gopsutil/v4/load"
+	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
@@ -129,11 +129,10 @@ func (a *Agent) CollectUtilizationMetrics(ctx context.Context, metricsChan chan<
 		case <-ticker.C:
 
 			memStats, _ := mem.VirtualMemory()
-			loadStats, _ := load.Avg()
 
 			totalMemory := float64(memStats.Total)
 			freeMemory := float64(memStats.Available)
-			cpuUtil := loadStats.Load1
+			cpuUtil, _ := cpu.Percent(0, false)
 
 			select {
 			case metricsChan <- models.Metric{ID: "TotalMemory", MType: "gauge", Value: &totalMemory}:
@@ -148,7 +147,7 @@ func (a *Agent) CollectUtilizationMetrics(ctx context.Context, metricsChan chan<
 			}
 
 			select {
-			case metricsChan <- models.Metric{ID: "CPUutilization1", MType: "gauge", Value: &cpuUtil}:
+			case metricsChan <- models.Metric{ID: "CPUutilization1", MType: "gauge", Value: &cpuUtil[0]}:
 			case <-ctx.Done():
 				return nil
 			}
