@@ -48,7 +48,7 @@ func createTestDataJSON(t *testing.T, server *httptest.Server, path string,
 func createTestServer() chi.Router {
 	repository := repository.NewStore()
 	service := service.NewMetricService(service.MetricServiceParams{Store: repository, Logger: zap.NewNop()})
-	metricHandler := handler.NewMetricHandler(service, zap.NewNop())
+	metricHandler := handler.NewMetricHandler(service, zap.NewNop(), "")
 
 	r := handler.NewRouter(handler.MainRouterParams{MetricHandler: metricHandler, Logger: zap.NewNop()})
 	return r

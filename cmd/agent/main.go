@@ -1,20 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
-	"math/rand/v2"
-	"time"
 
 	"github.com/cymiam/metrics-store/internal/agent"
 	config "github.com/cymiam/metrics-store/internal/config/agent"
-	"github.com/cymiam/metrics-store/internal/errors/agenterrors"
 	"github.com/cymiam/metrics-store/internal/logger"
 	models "github.com/cymiam/metrics-store/internal/model"
-	compress "github.com/cymiam/metrics-store/pkg/compress"
-	"github.com/go-resty/resty/v2"
-	"github.com/mailru/easyjson"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -31,72 +26,40 @@ func main() {
 		log.Fatal("Cannot parse agent config", err)
 	}
 
-	retryInterval := []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
-	agent := agent.NewAgent(agentConfig)
-	lastReport := time.Now()
-	for {
-		metrics := agent.PollRuntimeMetrics()
+	agent := agent.NewAgent(logger, agentConfig)
 
-		if time.Since(lastReport) >= time.Duration(agent.Config.ReportInterval*int64(time.Second)) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
 
-			randValue := rand.Float64()
-			metrics = append(metrics, models.Metric{ID: "PollCount", MType: "counter", Delta: &agent.PollCount})
-			metrics = append(metrics, models.Metric{ID: "RandomValue", MType: "gauge", Value: &randValue})
-			for attempt := 0; attempt <= 3; attempt++ {
-				err := sendMetrics(agent.Client, agent.Config.Addr, metrics, logger)
+	metricsChan := make(chan models.Metric)
 
-				if err == nil {
-					lastReport = time.Now()
-					break
-				}
-				classification := agenterrors.Classify(err)
+	jobsChan := make(chan models.Metrics, agentConfig.RateLimit)
 
-				if classification == agenterrors.NonRetriable {
-					logger.Error("couldnt send metrics", zap.Error(err))
-					break
-				}
+	defer close(metricsChan)
 
-				if attempt == len(retryInterval) {
-					logger.Error("couldnt send metric, all retries exhausted", zap.Error(err))
-					break
-				}
+	// Сбор рантайм метрик
+	g.Go(func() error {
+		return agent.CollectRuntimeMetrics(ctx, metricsChan)
+	})
 
-				time.Sleep(retryInterval[attempt])
+	// Сбор метрик утилизации
+	g.Go(func() error {
+		return agent.CollectUtilizationMetrics(ctx, metricsChan)
+	})
 
-			}
-		}
-		time.Sleep(time.Duration(agent.Config.PollInterval) * time.Second)
+	// Сбор метрик в батч перед отправкой
+	g.Go(func() error {
+		return agent.StartAggregator(ctx, metricsChan, jobsChan)
+	})
+
+	// Отправка метрик
+	g.Go(func() error {
+		return agent.StartWorkerPool(ctx, jobsChan, agentConfig.RateLimit)
+	})
+
+	if err := g.Wait(); err != nil {
+		logger.Error("Agent errors", zap.Error(err))
 	}
 
-}
-
-func sendMetrics(client resty.Client, addr string, m models.Metrics, logger *zap.Logger) error {
-
-	metrics, err := easyjson.Marshal(m)
-	if err != nil {
-		return fmt.Errorf("cannot marshal metric batch, %w", err)
-	}
-
-	gziped, err := compress.GzipCompress(metrics)
-
-	if err != nil {
-		return fmt.Errorf("cannot compress metric, %w", err)
-	}
-
-	req := client.R()
-	req.Method = "POST"
-	req.URL = fmt.Sprintf("http://%s/updates/", addr)
-	req.Body = gziped
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("Accept-Encoding", "gzip")
-
-	resp, err := req.Send()
-	if err != nil {
-		err = agenterrors.ClassifyAgentError(err)
-		return err
-	}
-
-	logger.Info("Sended metrics", zap.Int("metric count", len(m)), zap.Int("server response", resp.StatusCode()))
-	return nil
 }
