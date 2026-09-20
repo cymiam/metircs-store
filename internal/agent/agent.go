@@ -128,11 +128,21 @@ func (a *Agent) CollectUtilizationMetrics(ctx context.Context, metricsChan chan<
 			return nil
 		case <-ticker.C:
 
-			memStats, _ := mem.VirtualMemory()
+			memStats, err := mem.VirtualMemory()
+
+			if err != nil {
+				a.Logger.Error("cannot collect memory util metrics")
+				continue
+			}
 
 			totalMemory := float64(memStats.Total)
 			freeMemory := float64(memStats.Available)
-			cpuUtil, _ := cpu.Percent(0, false)
+			cpuUtil, err := cpu.Percent(0, true)
+
+			if err != nil {
+				a.Logger.Error("cannot collect cpu util metrics,")
+				continue
+			}
 
 			select {
 			case metricsChan <- models.Metric{ID: "TotalMemory", MType: "gauge", Value: &totalMemory}:
@@ -146,10 +156,15 @@ func (a *Agent) CollectUtilizationMetrics(ctx context.Context, metricsChan chan<
 				return nil
 			}
 
-			select {
-			case metricsChan <- models.Metric{ID: "CPUutilization1", MType: "gauge", Value: &cpuUtil[0]}:
-			case <-ctx.Done():
-				return nil
+			for i, cpuUtil := range cpuUtil {
+				value := cpuUtil
+
+				name := fmt.Sprintf("CPUutilization%d", i+1)
+				select {
+				case metricsChan <- models.Metric{ID: name, MType: "gauge", Value: &value}:
+				case <-ctx.Done():
+					return nil
+				}
 			}
 		}
 	}
