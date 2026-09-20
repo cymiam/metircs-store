@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"os/signal"
+	"syscall"
 
 	"github.com/cymiam/metrics-store/internal/agent"
 	config "github.com/cymiam/metrics-store/internal/config/agent"
@@ -28,7 +30,7 @@ func main() {
 
 	agent := agent.NewAgent(logger, agentConfig)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
 
