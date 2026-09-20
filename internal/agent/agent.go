@@ -171,9 +171,17 @@ func (a *Agent) CollectUtilizationMetrics(ctx context.Context, metricsChan chan<
 }
 
 func sendMetrics(client *resty.Client, addr string, m models.Metrics, logger *zap.Logger, key string) error {
+
+	req := client.R()
+	req.Method = "POST"
+	req.URL = fmt.Sprintf("http://%s/updates/", addr)
 	metrics, err := easyjson.Marshal(m)
 	if err != nil {
 		return fmt.Errorf("cannot marshal metric batch: %w", err)
+	}
+
+	if key != "" {
+		req.Header.Set("HashSHA256", hmac.CalculateSha256Sum(metrics, key))
 	}
 
 	gzipped, err := compress.GzipCompress(metrics)
@@ -181,17 +189,10 @@ func sendMetrics(client *resty.Client, addr string, m models.Metrics, logger *za
 		return fmt.Errorf("cannot compress metric: %w", err)
 	}
 
-	req := client.R()
-	req.Method = "POST"
-	req.URL = fmt.Sprintf("http://%s/updates/", addr)
 	req.SetBody(gzipped)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Accept-Encoding", "gzip")
-
-	if key != "" {
-		req.Header.Set("HashSHA256", hmac.CalculateSha256Sum(gzipped, key))
-	}
 
 	resp, err := req.Send()
 	if err != nil {
@@ -213,7 +214,7 @@ func sendMetrics(client *resty.Client, addr string, m models.Metrics, logger *za
 	return nil
 }
 
-func SendMetricsWithRetry(client *resty.Client, addr string, m models.Metrics, logger *zap.Logger, key string) error {
+func SendMetricsWithRetry(ctx context.Context, client *resty.Client, addr string, m models.Metrics, logger *zap.Logger, key string) error {
 	var lastErr error
 
 	intervals := []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
@@ -235,7 +236,18 @@ func SendMetricsWithRetry(client *resty.Client, addr string, m models.Metrics, l
 		// Если это не последняя попытка, ждем перед следующей
 		if attempt < len(intervals)-1 {
 			logger.Info("Retrying to send metrics", zap.Int("attempt", attempt+1), zap.Error(err))
-			time.Sleep(intervals[attempt])
+
+			timer := time.NewTimer(intervals[attempt])
+
+			select {
+			case <-timer.C:
+				continue
+			case <-ctx.Done():
+				if !timer.Stop() {
+					<-timer.C
+				}
+				return nil
+			}
 		}
 	}
 
@@ -291,7 +303,7 @@ func (a *Agent) StartWorkerPool(ctx context.Context, jobsIn <-chan models.Metric
 					if !ok {
 						return nil
 					}
-					err := SendMetricsWithRetry(&a.Client, a.Config.Addr, batch, a.Logger, a.Config.Key)
+					err := SendMetricsWithRetry(ctx, &a.Client, a.Config.Addr, batch, a.Logger, a.Config.Key)
 
 					if err != nil {
 						a.Logger.Error("cannot send request", zap.Int("WorkerID", i), zap.Error(err))
