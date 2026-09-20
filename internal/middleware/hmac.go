@@ -3,7 +3,7 @@ package middleware
 import (
 	"bytes"
 	"crypto/hmac"
-	"encoding/hex"
+	"encoding/base64"
 	"io"
 	"net/http"
 
@@ -20,17 +20,19 @@ func HMACMiddleware(key string) func(h http.Handler) http.Handler {
 				if err != nil {
 
 					http.Error(w, "Bad Request", http.StatusBadRequest)
+					return
 				}
 				r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-				got, err := hex.DecodeString(hashSum)
+				got, err := base64.StdEncoding.DecodeString(hashSum)
 				if err != nil {
 					http.Error(w, "Bad Request", http.StatusBadRequest)
+					return
 				}
-				hash, err := hex.DecodeString(h.CalculateSha256Sum(body, key))
+				hash, err := base64.StdEncoding.DecodeString(h.CalculateSha256Sum(body, key))
 				if err != nil {
-
 					http.Error(w, "Bad Request", http.StatusBadRequest)
+					return
 				}
 				if !hmac.Equal(got, hash) {
 					http.Error(w, "Bad Request", http.StatusBadRequest)

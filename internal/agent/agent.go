@@ -307,7 +307,7 @@ func (a *Agent) StartWorkerPool(ctx context.Context, jobsIn <-chan models.Metric
 
 					if err != nil {
 						a.Logger.Error("cannot send request", zap.Int("WorkerID", i), zap.Error(err))
-						return err
+						continue
 					}
 				}
 			}

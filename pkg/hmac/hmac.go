@@ -3,7 +3,7 @@ package hmac
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
+	"encoding/base64"
 )
 
 func CalculateSha256Sum(data []byte, key string) string {
@@ -11,5 +11,5 @@ func CalculateSha256Sum(data []byte, key string) string {
 	h.Write(data)
 
 	sum := h.Sum(nil)
-	return hex.EncodeToString(sum)
+	return base64.StdEncoding.EncodeToString(sum)
 }
