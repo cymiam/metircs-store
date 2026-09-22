@@ -11,6 +11,7 @@ type MainRouterParams struct {
 	Logger        *zap.Logger
 	HealthHandler *HealthHandler
 	MetricHandler *MetricHandler
+	Key           string
 }
 
 func NewRouter(params MainRouterParams) chi.Router {
@@ -18,8 +19,11 @@ func NewRouter(params MainRouterParams) chi.Router {
 
 	r.Use(middleware.Compress(5, "application/json", "text/html"))
 	r.Use(middleware.AllowContentEncoding("gzip"))
-	r.Use(m.GzipDecompressMidlleware)
 	r.Use(m.RequestLoggerMiddleware(params.Logger))
+	r.Use(m.GzipDecompressMidlleware)
+	if params.Key != "" {
+		r.Use(m.HMACMiddleware(params.Key))
+	}
 
 	r.Route("/update", func(r chi.Router) {
 		r.Post("/", params.MetricHandler.HandleUpdateJSON)

@@ -94,12 +94,12 @@ func main() {
 	}
 
 	metricService := service.NewMetricService(service.MetricServiceParams{Store: metricRepository, Saver: saver, Logger: saverLog})
-	metricHandler := handler.NewMetricHandler(metricService, handlerLog)
+	metricHandler := handler.NewMetricHandler(metricService, handlerLog, config.Key)
 
 	healthService := service.NewHealthService(pool)
 	healthHadler := handler.NewHealthHandler(handler.HealthHandlerParams{HealthService: healthService, Logger: httpLog})
 
-	mainRouter := handler.NewRouter(handler.MainRouterParams{Logger: httpLog, MetricHandler: metricHandler, HealthHandler: healthHadler})
+	mainRouter := handler.NewRouter(handler.MainRouterParams{Logger: httpLog, MetricHandler: metricHandler, HealthHandler: healthHadler, Key: config.Key})
 
 	baseLog.Info("Running server", zap.String("address", config.Addr))
 	log.Fatal(http.ListenAndServe(config.Addr, mainRouter))

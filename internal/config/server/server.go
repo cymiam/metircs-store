@@ -13,6 +13,7 @@ type ServerConfig struct {
 	FileStoragePath  string `env:"FILE_STORAGE_PATH"`
 	Restore          bool   `env:"RESTORE"`
 	ConnectionString string `env:"DATABASE_DSN"`
+	Key              string `env:"KEY"`
 }
 
 func parseServerFlags(serverConfig *ServerConfig) {
@@ -21,6 +22,7 @@ func parseServerFlags(serverConfig *ServerConfig) {
 	flag.IntVar(&serverConfig.StoreInterval, "i", 300, "Metrics update offset in seconds")
 	flag.BoolVar(&serverConfig.Restore, "r", false, "Start server with old metrics")
 	flag.StringVar(&serverConfig.ConnectionString, "d", "", "Connection string to database")
+	flag.StringVar(&serverConfig.Key, "k", "", "encryption key")
 	flag.Parse()
 }
 

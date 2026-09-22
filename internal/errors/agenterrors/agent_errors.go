@@ -2,6 +2,7 @@ package agenterrors
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -33,5 +34,5 @@ func ClassifyAgentError(err error) error {
 	if strings.Contains(err.Error(), "connection refused") {
 		return ErrConnectionRefused
 	}
-	return errors.New("unknown error")
+	return fmt.Errorf("unknown error %x", err)
 }
